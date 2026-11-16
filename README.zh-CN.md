@@ -8,15 +8,15 @@
 
 [English](README.md) · **简体中文**
 
-[![最新版本](https://img.shields.io/github/v/release/jinghuichen/touchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/jinghuichen/touchMyMac/releases/latest)
-[![下载量](https://img.shields.io/github/downloads/jinghuichen/touchMyMac/total?style=flat-square&color=0969da)](https://github.com/jinghuichen/touchMyMac/releases)
+[![最新版本](https://img.shields.io/github/v/release/marinimauricio/TouchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/TouchMyMac/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/marinimauricio/TouchMyMac/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/TouchMyMac/releases)
 [![macOS 12+](https://img.shields.io/badge/macOS-12%2B-111111?style=flat-square&logo=apple&logoColor=white)](#-安装)
 [![Apple 芯片](https://img.shields.io/badge/Apple%20silicon-arm64-555555?style=flat-square)](#-安装)
 [![许可证: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/jinghuichen/touchMyMac?style=flat-square&color=e3b341)](https://github.com/jinghuichen/touchMyMac/stargazers)
-[![最近提交](https://img.shields.io/github/last-commit/jinghuichen/touchMyMac?style=flat-square)](https://github.com/jinghuichen/touchMyMac/commits/main)
+[![Stars](https://img.shields.io/github/stars/marinimauricio/TouchMyMac?style=flat-square&color=e3b341)](https://github.com/marinimauricio/TouchMyMac/stargazers)
+[![最近提交](https://img.shields.io/github/last-commit/marinimauricio/TouchMyMac?style=flat-square)](https://github.com/marinimauricio/TouchMyMac/commits/main)
 
-[**下载**](https://github.com/jinghuichen/touchMyMac/releases/latest) · [手势](#-手势) · [安装](#-安装) · [常见问题](#-常见问题) · [从源码构建](#-从源码构建)
+[**下载**](https://github.com/marinimauricio/TouchMyMac/releases/latest) · [手势](#-手势) · [安装](#-安装) · [常见问题](#-常见问题) · [从源码构建](#-从源码构建)
 
 </div>
 
@@ -113,7 +113,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 
 ## 📦 安装
 
-1. 从 [**Releases**](https://github.com/jinghuichen/touchMyMac/releases/latest) 下载 `TouchMyMac-x.y.z-macOS-unsigned.zip`，解压后把 `TouchMyMac.app` 拖到 `/Applications`。
+1. 从 [**Releases**](https://github.com/marinimauricio/TouchMyMac/releases/latest) 下载 `TouchMyMac-x.y.z-macOS-unsigned.zip`，解压后把 `TouchMyMac.app` 拖到 `/Applications`。
 2. 打开 App。它没有经过公证，第一次打开会被 macOS 拦下：到 **系统设置 → 隐私与安全性**，点 **仍要打开**。
 3. 按提示授予 **辅助功能** 权限（系统设置 → 隐私与安全性 → 辅助功能）。TouchMyMac 需要它来发送点击、滚动和按键。有些触摸屏还需要 **输入监控** 权限才能读取；只有你的屏幕需要时 TouchMyMac 才会申请，这时菜单栏菜单里会多出一行 Input Monitoring。
 4. 连接触摸屏。TouchMyMac 会把触摸对应到外接显示器，不会选 Mac 自带的屏幕。如果接了多块外接显示器，看一下菜单栏菜单里的 **Touchscreen** 一项，在那里选中触摸屏。
@@ -157,7 +157,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 | 显示器 | 状态 |
 |---|---|
 | LG Smart Monitor Swing | ✅ 本分支实测可用 |
-| ELAN 触摸屏、LG CreateBoard | 🧪 贡献者用自己的补丁跑通过（[#2](https://github.com/jinghuichen/touchMyMac/pull/2)、[#3](https://github.com/jinghuichen/touchMyMac/pull/3)）；这些修复已进入 1.5.0，但还没在 1.5.0 上确认 |
+| ELAN 触摸屏、LG CreateBoard | 🧪 贡献者用自己的补丁跑通过（[#2](https://github.com/marinimauricio/TouchMyMac/pull/2)、[#3](https://github.com/marinimauricio/TouchMyMac/pull/3)）；这些修复已进入 1.5.0，但还没在 1.5.0 上确认 |
 | 其他 USB HID 触摸屏 | ❔ 如果在 Windows 上免驱可用，这里大概率也能用；尚未验证 |
 
 在别的屏幕上用起来了？欢迎提 issue 或 PR 把它加到这里。
@@ -227,7 +227,7 @@ TouchMyMac 通过 macOS 的辅助功能来判断手指下面是什么。有些 A
 ## 🛠 从源码构建
 
 ```bash
-git clone https://github.com/jinghuichen/touchMyMac.git
+git clone https://github.com/marinimauricio/TouchMyMac.git
 cd touchMyMac
 open TouchMyMac.xcodeproj
 ```
@@ -271,9 +271,9 @@ TouchMyMac 基于 [Sebastian Hueber](https://hci.rwth-aachen.de/touchup)（亚�
 
 ## ⭐ Star 趋势
 
-<a href="https://star-history.com/#jinghuichen/touchMyMac&Date">
+<a href="https://star-history.com/#marinimauricio/TouchMyMac&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=jinghuichen/touchMyMac&type=Date&theme=dark">
-    <img src="https://api.star-history.com/svg?repos=jinghuichen/touchMyMac&type=Date" alt="Star 趋势图" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date&theme=dark">
+    <img src="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date" alt="Star 趋势图" width="600">
   </picture>
 </a>

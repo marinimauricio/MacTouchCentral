@@ -8,15 +8,15 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-[![Latest release](https://img.shields.io/github/v/release/jinghuichen/touchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/jinghuichen/touchMyMac/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/jinghuichen/touchMyMac/total?style=flat-square&color=0969da)](https://github.com/jinghuichen/touchMyMac/releases)
+[![Latest release](https://img.shields.io/github/v/release/marinimauricio/TouchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/TouchMyMac/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/marinimauricio/TouchMyMac/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/TouchMyMac/releases)
 [![macOS 12+](https://img.shields.io/badge/macOS-12%2B-111111?style=flat-square&logo=apple&logoColor=white)](#-install)
 [![Apple silicon](https://img.shields.io/badge/Apple%20silicon-arm64-555555?style=flat-square)](#-install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/jinghuichen/touchMyMac?style=flat-square&color=e3b341)](https://github.com/jinghuichen/touchMyMac/stargazers)
-[![Last commit](https://img.shields.io/github/last-commit/jinghuichen/touchMyMac?style=flat-square)](https://github.com/jinghuichen/touchMyMac/commits/main)
+[![Stars](https://img.shields.io/github/stars/marinimauricio/TouchMyMac?style=flat-square&color=e3b341)](https://github.com/marinimauricio/TouchMyMac/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/marinimauricio/TouchMyMac?style=flat-square)](https://github.com/marinimauricio/TouchMyMac/commits/main)
 
-[**Download**](https://github.com/jinghuichen/touchMyMac/releases/latest) · [Gestures](#-gestures) · [Install](#-install) · [FAQ](#-faq) · [Build](#-build-from-source)
+[**Download**](https://github.com/marinimauricio/TouchMyMac/releases/latest) · [Gestures](#-gestures) · [Install](#-install) · [FAQ](#-faq) · [Build](#-build-from-source)
 
 </div>
 
@@ -28,6 +28,8 @@
 </p>
 
 TouchMyMac turns an external USB touchscreen into a real macOS input device. It reads raw HID touch data in user space and turns it into clicks, scrolling with inertia, dragging, multi-finger gestures, shortcut triggers and an on-screen keyboard, so the display feels less like a mouse emulator and more like an iPad.
+
+> **Project status for MK Technology MK S2300-G100:** single-touch operation is working on macOS, and 10-finger multitouch has been independently confirmed on Windows 11. The connected MK firmware currently exposes only one-contact reports to macOS, so native multitouch support for this exact device remains an open reverse-engineering task. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [the MK test report](docs/MK-S2300-G100.md).
 
 ## 🍎 Touch beyond the new MacBook Pro
 
@@ -113,7 +115,7 @@ One finger is told apart the way Android's GestureDetector does it:
 
 ## 📦 Install
 
-1. Download `TouchMyMac-x.y.z-macOS-unsigned.zip` from [**Releases**](https://github.com/jinghuichen/touchMyMac/releases/latest), unzip it and move `TouchMyMac.app` to `/Applications`.
+1. Download `TouchMyMac-x.y.z-macOS-unsigned.zip` from [**Releases**](https://github.com/marinimauricio/TouchMyMac/releases/latest), unzip it and move `TouchMyMac.app` to `/Applications`.
 2. Open the app. It isn't notarized, so macOS blocks the first launch: open **System Settings → Privacy & Security** and click **Open Anyway**.
 3. Grant **Accessibility** access when asked (System Settings → Privacy & Security → Accessibility). TouchMyMac needs it to post clicks, scrolling and key presses. Some touchscreens can only be read with **Input Monitoring** as well; TouchMyMac asks for it only when your screen needs it, and the menu bar menu then shows an Input Monitoring row.
 4. Connect your touchscreen. TouchMyMac maps touches to an external display, never the Mac's built-in one. With several external displays, check the **Touchscreen** row in the menu bar menu and pick the right monitor there.
@@ -157,7 +159,7 @@ Everything below lives in the Settings window (menu bar icon → Settings).
 | Display | Status |
 |---|---|
 | LG Smart Monitor Swing | ✅ Tested by this fork |
-| ELAN panels, LG CreateBoard | 🧪 Worked with contributors' patches ([#2](https://github.com/jinghuichen/touchMyMac/pull/2), [#3](https://github.com/jinghuichen/touchMyMac/pull/3)); those fixes are in 1.5.0 but not confirmed there yet |
+| ELAN panels, LG CreateBoard | 🧪 Worked with contributors' patches ([#2](https://github.com/marinimauricio/TouchMyMac/pull/2), [#3](https://github.com/marinimauricio/TouchMyMac/pull/3)); those fixes are in 1.5.0 but not confirmed there yet |
 | Other USB HID touchscreens | ❔ Should work if they work on Windows without a driver; not validated yet |
 
 Have it working on another screen? Open an issue or PR to add it here.
@@ -227,7 +229,7 @@ Pick it under **Settings → General → Language** and click Restart Now. The d
 ## 🛠 Build from source
 
 ```bash
-git clone https://github.com/jinghuichen/touchMyMac.git
+git clone https://github.com/marinimauricio/TouchMyMac.git
 cd touchMyMac
 open TouchMyMac.xcodeproj
 ```
@@ -271,9 +273,9 @@ TouchMyMac builds on the original TouchMyMac and TouchUpCore by [Sebastian Huebe
 
 ## ⭐ Star history
 
-<a href="https://star-history.com/#jinghuichen/touchMyMac&Date">
+<a href="https://star-history.com/#marinimauricio/TouchMyMac&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=jinghuichen/touchMyMac&type=Date&theme=dark">
-    <img src="https://api.star-history.com/svg?repos=jinghuichen/touchMyMac&type=Date" alt="Star history chart" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date&theme=dark">
+    <img src="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date" alt="Star history chart" width="600">
   </picture>
 </a>

@@ -9,3 +9,12 @@ TouchMyMac.xcodeproj/project.xcworkspace/xcshareddata/
 # Build artifacts
 DerivedData/
 build/
+
+# Local diagnostics and secrets
+*.log
+.env
+.env.*
+!.env.example
+TouchMyMac-MK-raw.log
+*.pcap
+*.trace

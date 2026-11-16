@@ -1,0 +1,1406 @@
+//
+//  TUCCursorUtilities.m
+//  Touch Up Core
+//
+//  Created by Sebastian Hueber on 11.02.23.
+//
+
+#import "TUCCursorUtilities.h"
+#import <Carbon/Carbon.h>
+#import <QuartzCore/QuartzCore.h>
+#import <unistd.h>
+#import <dlfcn.h>
+#import <mach/mach_time.h>
+
+#define kScrollSampleCapacity 32
+
+@interface TUCCursorUtilities ()
+
+@property CGFloat spaceSwipeProgress; // the last progress sent in a space swipe
+@property NSInteger cursorClickCount;
+@property NSDate *timeOfLastClick;
+@property CGPoint locationOfLastClick;
+
+// A click's mouse-up waits a moment after its mouse-down (see `postClickDown:`).
+@property BOOL hasPendingClickUp;
+@property CGEventType pendingClickUpType;
+@property CGMouseButton pendingClickUpButton;
+@property CGPoint pendingClickUpLocation;
+@property int64_t pendingClickUpClickState;
+@property NSInteger pendingClickUpToken;
+
+@property BOOL isLeftMouseDown;
+
+@property BOOL isScrollGestureActive;
+@property BOOL isCursorHiddenForScroll;
+@property CGPoint scrollRemainder; // sub-pixel part of the deltas, carried into the next event
+@property CGPoint fingerScrollPosition; // total finger travel in this scroll gesture
+// Adaptive smoothing of the finger path (see `filterFingerPosition:at:`).
+@property CGPoint filteredFingerPosition;
+@property CGPoint filteredFingerVelocity;
+@property CGPoint lastRawFingerPosition;
+@property CFTimeInterval filterLastTime;
+@property CGPoint scrollOutputPosition; // total travel already posted
+// The two latest finger reports, used to resample the finger path at display frame times.
+@property CFTimeInterval scrollPathTime0;
+@property CFTimeInterval scrollPathTime1;
+@property CGPoint scrollPathPosition0;
+@property CGPoint scrollPathPosition1;
+@property CFTimeInterval reportInterval; // running estimate of the time between touch reports
+@property BOOL isCoasting; // reports stopped mid-scroll; the content keeps moving at `coastVelocity`
+@property BOOL isResumingAfterCoast; // reports came back; wait for the finger to catch up with the coasted content
+@property CGPoint coastVelocity;
+
+@property BOOL isMomentumActive;
+@property CGPoint momentumScrollVelocity; // current inertia velocity, for `momentumScrollSpeed`
+@property CFTimeInterval momentumStartTime;
+@property CFTimeInterval momentumDuration;
+@property CGFloat momentumDistance;
+@property CGFloat momentumTravelled;
+@property CGPoint momentumDirection; // unit vector
+
+@property (strong, nullable) id frameDriver; // CADisplayLink, or NSTimer before macOS 14
+
+@property BOOL isMagnifying;
+@property CGFloat pinchTargetSpan;   // latest finger distance
+@property CGFloat pinchFilteredSpan; // smoothed toward the target each frame
+@property CGFloat pinchPostedSpan;   // the distance the zoom posted so far corresponds to
+@property CFTimeInterval pinchLastFrameTime;
+@property CGPoint pinchCenter;       // between the fingers; apps zoom around the event location
+
+@property BOOL isHoldingShortcut;
+@property (copy) NSArray<NSDictionary<NSString *, NSNumber *> *> *heldModifierDescriptors;
+@property (copy) NSArray<NSNumber *> *heldNonModifierKeyCodes;
+@property CGEventFlags heldShortcutFlags;
+
+@end
+
+@implementation TUCCursorUtilities {
+    // Recent finger movement, used to measure the velocity at liftoff.
+    CFTimeInterval _scrollSampleTimes[kScrollSampleCapacity];
+    CGPoint _scrollSampleDeltas[kScrollSampleCapacity];
+    NSInteger _scrollSampleCount;
+}
+
+static const NSTimeInterval kFallbackFrameInterval = 1.0 / 120.0;
+static const CFTimeInterval kDefaultReportInterval = 1.0 / 100.0;
+// One Euro filter settings for the finger path: cutoff frequency at rest (Hz), how fast the cutoff
+// rises with finger speed (Hz per px/s), and the cutoff used to smooth the speed estimate itself.
+static const CGFloat kScrollFilterMinCutoff = 3.0;
+static const CGFloat kScrollFilterBeta = 0.06;
+static const CGFloat kScrollFilterSpeedCutoff = 8.0;
+// Release velocity, as in Android's VelocityTracker: a quadratic least-squares fit over the last 100 ms,
+// and zero if the finger had not moved for 40 ms before lifting.
+static const CFTimeInterval kScrollVelocityHorizon = 0.1;
+static const CFTimeInterval kScrollAssumeStoppedTime = 0.04;
+// When touch reports stop for this many report intervals, keep the content moving (see `advanceScrollOutput`).
+static const CFTimeInterval kScrollCoastAfterReportIntervals = 3.0;
+static const CGFloat kDefaultMomentumStartThreshold = 120.0;          // px/s
+static const CGFloat kDefaultMomentumDecelerationPerFrame = 0.92;     // 60Hz
+static const CGKeyCode kUpArrowKeyCode = 126;
+static const CGKeyCode kControlKeyCode = kVK_Control;
+static NSString * const kMissionControlAppPath = @"/System/Applications/Mission Control.app";
+static NSString * const TUCShortcutDescriptorCodeKey = @"code";
+static NSString * const TUCShortcutDescriptorFlagKey = @"flag";
+static const useconds_t kShortcutSequenceStepDelayMicroseconds = 30000;
+
++ (TUCCursorUtilities *)sharedInstance {
+    static TUCCursorUtilities *sharedInstance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        if (!sharedInstance) {
+            sharedInstance = [[TUCCursorUtilities alloc] init];
+            sharedInstance.isLeftMouseDown = NO;
+            sharedInstance.cursorClickCount = 0;
+            sharedInstance.timeOfLastClick = [NSDate dateWithTimeIntervalSince1970:0];
+            sharedInstance.locationOfLastClick = CGPointZero;
+            sharedInstance.reportInterval = kDefaultReportInterval;
+            sharedInstance.momentumScrollVelocity = CGPointZero;
+            sharedInstance.momentumPointsPerMM = 4.0;
+            sharedInstance.pinchZoomExponent = 1.0;
+            sharedInstance.momentumScrollEnabled = YES;
+            sharedInstance.momentumDecelerationPerFrame = kDefaultMomentumDecelerationPerFrame;
+            sharedInstance.momentumVelocityMultiplier = 1.0;
+            sharedInstance.momentumStartThreshold = kDefaultMomentumStartThreshold;
+        }
+    });
+    return sharedInstance;
+}
+
+
+
+
+
+- (CGPoint)currentCursorLocation {
+    CGEventRef dummy = CGEventCreate(NULL);
+    CGPoint location = CGEventGetLocation(dummy);
+    CFRelease(dummy);
+    return location;
+}
+
+- (BOOL)resolveShortcutToken:(NSString *)token
+                     keyCode:(CGKeyCode *)keyCode
+                        flag:(CGEventFlags *)flag
+                  isModifier:(BOOL *)isModifier {
+    NSString *normalized = token.lowercaseString;
+    if (normalized.length == 0) {
+        return NO;
+    }
+
+    if ([normalized isEqualToString:@"cmd"] || [normalized isEqualToString:@"command"] || [normalized isEqualToString:@"⌘"]) {
+        *keyCode = kVK_Command;
+        *flag = kCGEventFlagMaskCommand;
+        *isModifier = YES;
+        return YES;
+    }
+    if ([normalized isEqualToString:@"ctrl"] || [normalized isEqualToString:@"control"] || [normalized isEqualToString:@"⌃"]) {
+        *keyCode = kVK_Control;
+        *flag = kCGEventFlagMaskControl;
+        *isModifier = YES;
+        return YES;
+    }
+    if ([normalized isEqualToString:@"opt"] || [normalized isEqualToString:@"option"] || [normalized isEqualToString:@"alt"] || [normalized isEqualToString:@"⌥"]) {
+        *keyCode = kVK_Option;
+        *flag = kCGEventFlagMaskAlternate;
+        *isModifier = YES;
+        return YES;
+    }
+    if ([normalized isEqualToString:@"shift"] || [normalized isEqualToString:@"⇧"]) {
+        *keyCode = kVK_Shift;
+        *flag = kCGEventFlagMaskShift;
+        *isModifier = YES;
+        return YES;
+    }
+    if ([normalized isEqualToString:@"fn"] || [normalized isEqualToString:@"function"] || [normalized isEqualToString:@"globe"]) {
+        *keyCode = kVK_Function;
+        *flag = kCGEventFlagMaskSecondaryFn;
+        *isModifier = YES;
+        return YES;
+    }
+
+    *flag = 0;
+    *isModifier = NO;
+
+    if ([normalized isEqualToString:@"a"]) { *keyCode = kVK_ANSI_A; return YES; }
+    if ([normalized isEqualToString:@"b"]) { *keyCode = kVK_ANSI_B; return YES; }
+    if ([normalized isEqualToString:@"c"]) { *keyCode = kVK_ANSI_C; return YES; }
+    if ([normalized isEqualToString:@"d"]) { *keyCode = kVK_ANSI_D; return YES; }
+    if ([normalized isEqualToString:@"e"]) { *keyCode = kVK_ANSI_E; return YES; }
+    if ([normalized isEqualToString:@"f"]) { *keyCode = kVK_ANSI_F; return YES; }
+    if ([normalized isEqualToString:@"g"]) { *keyCode = kVK_ANSI_G; return YES; }
+    if ([normalized isEqualToString:@"h"]) { *keyCode = kVK_ANSI_H; return YES; }
+    if ([normalized isEqualToString:@"i"]) { *keyCode = kVK_ANSI_I; return YES; }
+    if ([normalized isEqualToString:@"j"]) { *keyCode = kVK_ANSI_J; return YES; }
+    if ([normalized isEqualToString:@"k"]) { *keyCode = kVK_ANSI_K; return YES; }
+    if ([normalized isEqualToString:@"l"]) { *keyCode = kVK_ANSI_L; return YES; }
+    if ([normalized isEqualToString:@"m"]) { *keyCode = kVK_ANSI_M; return YES; }
+    if ([normalized isEqualToString:@"n"]) { *keyCode = kVK_ANSI_N; return YES; }
+    if ([normalized isEqualToString:@"o"]) { *keyCode = kVK_ANSI_O; return YES; }
+    if ([normalized isEqualToString:@"p"]) { *keyCode = kVK_ANSI_P; return YES; }
+    if ([normalized isEqualToString:@"q"]) { *keyCode = kVK_ANSI_Q; return YES; }
+    if ([normalized isEqualToString:@"r"]) { *keyCode = kVK_ANSI_R; return YES; }
+    if ([normalized isEqualToString:@"s"]) { *keyCode = kVK_ANSI_S; return YES; }
+    if ([normalized isEqualToString:@"t"]) { *keyCode = kVK_ANSI_T; return YES; }
+    if ([normalized isEqualToString:@"u"]) { *keyCode = kVK_ANSI_U; return YES; }
+    if ([normalized isEqualToString:@"v"]) { *keyCode = kVK_ANSI_V; return YES; }
+    if ([normalized isEqualToString:@"w"]) { *keyCode = kVK_ANSI_W; return YES; }
+    if ([normalized isEqualToString:@"x"]) { *keyCode = kVK_ANSI_X; return YES; }
+    if ([normalized isEqualToString:@"y"]) { *keyCode = kVK_ANSI_Y; return YES; }
+    if ([normalized isEqualToString:@"z"]) { *keyCode = kVK_ANSI_Z; return YES; }
+    if ([normalized isEqualToString:@"0"]) { *keyCode = kVK_ANSI_0; return YES; }
+    if ([normalized isEqualToString:@"1"]) { *keyCode = kVK_ANSI_1; return YES; }
+    if ([normalized isEqualToString:@"2"]) { *keyCode = kVK_ANSI_2; return YES; }
+    if ([normalized isEqualToString:@"3"]) { *keyCode = kVK_ANSI_3; return YES; }
+    if ([normalized isEqualToString:@"4"]) { *keyCode = kVK_ANSI_4; return YES; }
+    if ([normalized isEqualToString:@"5"]) { *keyCode = kVK_ANSI_5; return YES; }
+    if ([normalized isEqualToString:@"6"]) { *keyCode = kVK_ANSI_6; return YES; }
+    if ([normalized isEqualToString:@"7"]) { *keyCode = kVK_ANSI_7; return YES; }
+    if ([normalized isEqualToString:@"8"]) { *keyCode = kVK_ANSI_8; return YES; }
+    if ([normalized isEqualToString:@"9"]) { *keyCode = kVK_ANSI_9; return YES; }
+    if ([normalized isEqualToString:@"delete"] || [normalized isEqualToString:@"backspace"]) { *keyCode = kVK_Delete; return YES; }
+    if ([normalized isEqualToString:@"forwarddelete"]) { *keyCode = kVK_ForwardDelete; return YES; }
+    if ([normalized isEqualToString:@"return"]) { *keyCode = kVK_Return; return YES; }
+    if ([normalized isEqualToString:@"enter"]) { *keyCode = kVK_ANSI_KeypadEnter; return YES; }
+    if ([normalized isEqualToString:@"space"]) { *keyCode = kVK_Space; return YES; }
+    if ([normalized isEqualToString:@"tab"]) { *keyCode = kVK_Tab; return YES; }
+    if ([normalized isEqualToString:@"grave"] || [normalized isEqualToString:@"backtick"]) { *keyCode = kVK_ANSI_Grave; return YES; }
+    if ([normalized isEqualToString:@"hyphen"] || [normalized isEqualToString:@"minus"]) { *keyCode = kVK_ANSI_Minus; return YES; }
+    if ([normalized isEqualToString:@"equal"] || [normalized isEqualToString:@"equals"]) { *keyCode = kVK_ANSI_Equal; return YES; }
+    if ([normalized isEqualToString:@"leftbracket"] || [normalized isEqualToString:@"["]) { *keyCode = kVK_ANSI_LeftBracket; return YES; }
+    if ([normalized isEqualToString:@"rightbracket"] || [normalized isEqualToString:@"]"]) { *keyCode = kVK_ANSI_RightBracket; return YES; }
+    if ([normalized isEqualToString:@"backslash"]) { *keyCode = kVK_ANSI_Backslash; return YES; }
+    if ([normalized isEqualToString:@"semicolon"]) { *keyCode = kVK_ANSI_Semicolon; return YES; }
+    if ([normalized isEqualToString:@"quote"] || [normalized isEqualToString:@"apostrophe"]) { *keyCode = kVK_ANSI_Quote; return YES; }
+    if ([normalized isEqualToString:@"comma"]) { *keyCode = kVK_ANSI_Comma; return YES; }
+    if ([normalized isEqualToString:@"period"] || [normalized isEqualToString:@"dot"]) { *keyCode = kVK_ANSI_Period; return YES; }
+    if ([normalized isEqualToString:@"slash"]) { *keyCode = kVK_ANSI_Slash; return YES; }
+    if ([normalized isEqualToString:@"escape"] || [normalized isEqualToString:@"esc"]) { *keyCode = kVK_Escape; return YES; }
+    if ([normalized isEqualToString:@"left"]) { *keyCode = kVK_LeftArrow; return YES; }
+    if ([normalized isEqualToString:@"right"]) { *keyCode = kVK_RightArrow; return YES; }
+    if ([normalized isEqualToString:@"up"]) { *keyCode = kVK_UpArrow; return YES; }
+    if ([normalized isEqualToString:@"down"]) { *keyCode = kVK_DownArrow; return YES; }
+    if ([normalized isEqualToString:@"home"]) { *keyCode = kVK_Home; return YES; }
+    if ([normalized isEqualToString:@"end"]) { *keyCode = kVK_End; return YES; }
+    if ([normalized isEqualToString:@"pageup"]) { *keyCode = kVK_PageUp; return YES; }
+    if ([normalized isEqualToString:@"pagedown"]) { *keyCode = kVK_PageDown; return YES; }
+    if ([normalized isEqualToString:@"f1"]) { *keyCode = kVK_F1; return YES; }
+    if ([normalized isEqualToString:@"f2"]) { *keyCode = kVK_F2; return YES; }
+    if ([normalized isEqualToString:@"f3"]) { *keyCode = kVK_F3; return YES; }
+    if ([normalized isEqualToString:@"f4"]) { *keyCode = kVK_F4; return YES; }
+    if ([normalized isEqualToString:@"f5"]) { *keyCode = kVK_F5; return YES; }
+    if ([normalized isEqualToString:@"f6"]) { *keyCode = kVK_F6; return YES; }
+    if ([normalized isEqualToString:@"f7"]) { *keyCode = kVK_F7; return YES; }
+    if ([normalized isEqualToString:@"f8"]) { *keyCode = kVK_F8; return YES; }
+    if ([normalized isEqualToString:@"f9"]) { *keyCode = kVK_F9; return YES; }
+    if ([normalized isEqualToString:@"f10"]) { *keyCode = kVK_F10; return YES; }
+    if ([normalized isEqualToString:@"f11"]) { *keyCode = kVK_F11; return YES; }
+    if ([normalized isEqualToString:@"f12"]) { *keyCode = kVK_F12; return YES; }
+
+    return NO;
+}
+
+- (nullable NSDictionary<NSString *, id> *)parseShortcutChordSpec:(NSString *)shortcutSpec {
+    NSString *trimmed = [shortcutSpec stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) {
+        return nil;
+    }
+
+    NSArray<NSString *> *parts = [trimmed componentsSeparatedByString:@"+"];
+    NSMutableArray<NSDictionary<NSString *, NSNumber *> *> *modifierDescriptors = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *nonModifierKeyCodes = [NSMutableArray array];
+    CGEventFlags flags = 0;
+
+    for (NSString *part in parts) {
+        NSString *token = [part stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        CGKeyCode keyCode = 0;
+        CGEventFlags tokenFlag = 0;
+        BOOL isModifier = NO;
+        if (![self resolveShortcutToken:token keyCode:&keyCode flag:&tokenFlag isModifier:&isModifier]) {
+            return nil;
+        }
+
+        if (isModifier) {
+            [modifierDescriptors addObject:@{
+                TUCShortcutDescriptorCodeKey: @(keyCode),
+                TUCShortcutDescriptorFlagKey: @(tokenFlag)
+            }];
+            flags |= tokenFlag;
+        } else {
+            [nonModifierKeyCodes addObject:@(keyCode)];
+        }
+    }
+
+    return @{
+        @"modifiers": modifierDescriptors,
+        @"nonModifiers": nonModifierKeyCodes,
+        @"flags": @(flags)
+    };
+}
+
+- (void)postKeyboardEventForKeyCode:(CGKeyCode)keyCode
+                             keyDown:(BOOL)keyDown
+                               flags:(CGEventFlags)flags {
+    CGEventRef event = CGEventCreateKeyboardEvent(NULL, keyCode, keyDown);
+    if (event == NULL) {
+        return;
+    }
+    CGEventSetFlags(event, flags);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+- (void)pressAndReleaseShortcutChordWithDescriptors:(NSDictionary<NSString *, id> *)descriptors {
+    NSArray<NSDictionary<NSString *, NSNumber *> *> *modifierDescriptors = descriptors[@"modifiers"];
+    NSArray<NSNumber *> *nonModifierKeyCodes = descriptors[@"nonModifiers"];
+    CGEventFlags flags = [descriptors[@"flags"] unsignedLongLongValue];
+
+    CGEventFlags currentFlags = 0;
+    for (NSDictionary<NSString *, NSNumber *> *descriptor in modifierDescriptors) {
+        currentFlags |= descriptor[TUCShortcutDescriptorFlagKey].unsignedLongLongValue;
+        [self postKeyboardEventForKeyCode:descriptor[TUCShortcutDescriptorCodeKey].unsignedShortValue
+                                  keyDown:YES
+                                    flags:currentFlags];
+    }
+
+    for (NSNumber *keyCode in nonModifierKeyCodes) {
+        [self postKeyboardEventForKeyCode:keyCode.unsignedShortValue keyDown:YES flags:flags];
+    }
+
+    for (NSNumber *keyCode in [nonModifierKeyCodes reverseObjectEnumerator]) {
+        [self postKeyboardEventForKeyCode:keyCode.unsignedShortValue keyDown:NO flags:flags];
+    }
+
+    for (NSDictionary<NSString *, NSNumber *> *descriptor in [modifierDescriptors reverseObjectEnumerator]) {
+        CGEventFlags nextFlags = currentFlags & ~descriptor[TUCShortcutDescriptorFlagKey].unsignedLongLongValue;
+        [self postKeyboardEventForKeyCode:descriptor[TUCShortcutDescriptorCodeKey].unsignedShortValue
+                                  keyDown:NO
+                                    flags:nextFlags];
+        currentFlags = nextFlags;
+    }
+}
+
+
+
+/**
+ How long a synthesized click keeps the button down. Posting down and up together (the same
+ timestamp, while the system already reports the button as up) made AppKit controls skip about
+ one click in ten and never show their pressed state. A real mouse click lasts 60-120 ms.
+ */
+static const NSTimeInterval kClickPressDuration = 0.04;
+
+- (void)postClickDownOfType:(CGEventType)downType upType:(CGEventType)upType button:(CGMouseButton)button
+                         at:(CGPoint)location clickState:(int64_t)clickState {
+    [self postPendingClickUp];
+
+    CGEventRef event = CGEventCreateMouseEvent(NULL, downType, location, button);
+    CGEventSetIntegerValueField(event, kCGMouseEventClickState, clickState);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+
+    self.hasPendingClickUp = YES;
+    self.pendingClickUpType = upType;
+    self.pendingClickUpButton = button;
+    self.pendingClickUpLocation = location;
+    self.pendingClickUpClickState = clickState;
+    NSInteger token = ++self.pendingClickUpToken;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kClickPressDuration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (self.pendingClickUpToken == token) {
+            [self postPendingClickUp];
+        }
+    });
+}
+
+/// Releases a click that is still held, so any mouse event that follows comes after it.
+- (void)postPendingClickUp {
+    if (!self.hasPendingClickUp) {
+        return;
+    }
+    self.hasPendingClickUp = NO;
+    CGEventRef event = CGEventCreateMouseEvent(NULL, self.pendingClickUpType, self.pendingClickUpLocation, self.pendingClickUpButton);
+    CGEventSetIntegerValueField(event, kCGMouseEventClickState, self.pendingClickUpClickState);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+- (void)movePointerKeepingScrollTo:(CGPoint)aLocation {
+    [self postPendingClickUp];
+    CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, aLocation, kCGMouseButtonLeft);
+    CGEventSetIntegerValueField(event, kCGMouseEventClickState, 0);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+- (void)moveCursorTo:(CGPoint)aLocation {
+    [self postPendingClickUp];
+    [self cancelMomentumScroll];
+    [self stopDraggingCursor];
+    
+    CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, aLocation, kCGMouseButtonLeft);
+    CGEventSetIntegerValueField(event, kCGMouseEventClickState, 0);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+static double TUCFitSlopeAtZero(const double *t, const double *value, NSInteger n);
+
+static inline CGFloat TUCLength(CGPoint v) {
+    return (CGFloat)sqrt((double)(v.x * v.x + v.y * v.y));
+}
+
+static inline CGPoint TUCPointAdd(CGPoint a, CGPoint b) {
+    return CGPointMake(a.x + b.x, a.y + b.y);
+}
+
+static inline CGPoint TUCPointSubtract(CGPoint a, CGPoint b) {
+    return CGPointMake(a.x - b.x, a.y - b.y);
+}
+
+static inline CGPoint TUCPointScale(CGPoint p, CGFloat s) {
+    return CGPointMake(p.x * s, p.y * s);
+}
+
+static inline CGFloat TUCClamp(CGFloat v, CGFloat minV, CGFloat maxV) {
+    return v < minV ? minV : (v > maxV ? maxV : v);
+}
+
+/// Exponential smoothing factor for a low-pass filter with the given cutoff frequency (Hz).
+static inline CGFloat TUCSmoothingFactor(CFTimeInterval dt, CGFloat cutoff) {
+    CGFloat tau = (CGFloat)(1.0 / (2.0 * M_PI * cutoff));
+    return (CGFloat)(1.0 / (1.0 + tau / dt));
+}
+
+static inline CFTimeInterval TUCNowSeconds(void) {
+    return CACurrentMediaTime();
+}
+
+static const CGEventField kTUCScrollWheelEventDirectionInvertedFromDevice = (CGEventField)137;
+
+/**
+ Only the active app may hide the pointer through public API, and TouchMyMac runs in the background.
+ The window server's "SetsCursorInBackground" connection property lifts that limit. It is private,
+ so it's looked up at runtime; if it's missing, hiding simply does nothing.
+ */
+static void TUCAllowCursorHidingInBackground(void) {
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        typedef int (*TUCDefaultConnectionFunction)(void);
+        typedef CGError (*TUCSetConnectionPropertyFunction)(int, int, CFStringRef, CFTypeRef);
+        TUCDefaultConnectionFunction defaultConnection = (TUCDefaultConnectionFunction)dlsym(RTLD_DEFAULT, "_CGSDefaultConnection");
+        TUCSetConnectionPropertyFunction setProperty = (TUCSetConnectionPropertyFunction)dlsym(RTLD_DEFAULT, "CGSSetConnectionProperty");
+        if (defaultConnection != NULL && setProperty != NULL) {
+            int connection = defaultConnection();
+            setProperty(connection, connection, CFSTR("SetsCursorInBackground"), kCFBooleanTrue);
+        }
+    });
+}
+
+- (void)setHidesCursorWhileScrolling:(BOOL)hidesCursorWhileScrolling {
+    _hidesCursorWhileScrolling = hidesCursorWhileScrolling;
+    if (!hidesCursorWhileScrolling) {
+        [self setCursorHiddenForScroll:NO];
+    }
+}
+
+/// Hide and show calls are counted by the system, so this keeps them paired.
+- (void)setCursorHiddenForScroll:(BOOL)hidden {
+    if (hidden == _isCursorHiddenForScroll) {
+        return;
+    }
+    if (hidden) {
+        if (!self.hidesCursorWhileScrolling) {
+            return;
+        }
+        TUCAllowCursorHidingInBackground();
+        if (CGDisplayHideCursor(kCGNullDirectDisplay) != kCGErrorSuccess) {
+            return;
+        }
+    } else {
+        CGDisplayShowCursor(kCGNullDirectDisplay);
+    }
+    _isCursorHiddenForScroll = hidden;
+}
+
+- (void)postScrollDelta:(CGPoint)delta scrollPhase:(CGScrollPhase)scrollPhase momentumPhase:(CGMomentumScrollPhase)momentumPhase {
+    // Hidden only while the finger scrolls. Inertia often moves nothing (a sideways swipe on a page
+    // that can't scroll sideways), so waiting for it would leave the pointer hidden for no reason.
+    if (scrollPhase == kCGScrollPhaseBegan) {
+        [self setCursorHiddenForScroll:YES];
+    } else if (scrollPhase == kCGScrollPhaseEnded) {
+        [self setCursorHiddenForScroll:NO];
+    }
+
+    // Scroll events carry whole pixels. Carry the remainder forward instead of truncating it,
+    // otherwise slow drags and the tail of inertia lose distance and stutter.
+    CGPoint total = CGPointMake(self.scrollRemainder.x + delta.x, self.scrollRemainder.y + delta.y);
+    int32_t dx = (int32_t)trunc(total.x);
+    int32_t dy = (int32_t)trunc(total.y);
+    self.scrollRemainder = CGPointMake(total.x - dx, total.y - dy);
+
+    BOOL isPhaseChange = scrollPhase == kCGScrollPhaseBegan || scrollPhase == kCGScrollPhaseEnded
+        || momentumPhase == kCGMomentumScrollPhaseBegin || momentumPhase == kCGMomentumScrollPhaseEnd;
+    if (dx == 0 && dy == 0 && !isPhaseChange) {
+        return;
+    }
+
+    CGEventRef event = CGEventCreateScrollWheelEvent2(NULL, kCGScrollEventUnitPixel, 2, dy, dx, 0);
+    if (event == NULL) {
+        return;
+    }
+    // Phases make apps treat this like trackpad scrolling: smooth, with rubber banding at the edges.
+    CGEventSetIntegerValueField(event, kCGScrollWheelEventScrollPhase, scrollPhase);
+    CGEventSetIntegerValueField(event, kCGScrollWheelEventMomentumPhase, momentumPhase);
+    // The content follows the finger, as on a trackpad with natural scrolling, whose events are marked as
+    // inverted from the device (NSEvent.isDirectionInvertedFromDevice, undocumented field 137). Views that
+    // move with the finger rather than scroll content, like the picture-in-picture video window, undo
+    // that inversion to get the finger's direction; without the mark they moved the opposite way.
+    CGEventSetIntegerValueField(event, kTUCScrollWheelEventDirectionInvertedFromDevice, 1);
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+/**
+ integrated double click support: needs checks time between clicks and spatial distance
+ */
+- (void)performClickAt:(CGPoint)aLocation {
+    [self updateCursorClickCountWithLocation:aLocation];
+    
+    [self postClickDownOfType:kCGEventLeftMouseDown upType:kCGEventLeftMouseUp button:kCGMouseButtonLeft
+                           at:aLocation clickState:self.cursorClickCount];
+
+    self.timeOfLastClick = [NSDate date];
+    self.locationOfLastClick = aLocation;
+}
+
+
+- (void)updateCursorClickCountWithLocation:(CGPoint)aLocation {
+    ++self.cursorClickCount;
+    
+    NSTimeInterval durationSinceLastClick = [[NSDate date] timeIntervalSinceDate:self.timeOfLastClick];
+    
+    if (durationSinceLastClick > [NSEvent doubleClickInterval] || self.cursorClickCount == 4) {
+        self.cursorClickCount = 1;
+    }
+    
+    else {
+        CGFloat dx = aLocation.x - self.locationOfLastClick.x;
+        CGFloat dy = aLocation.y - self.locationOfLastClick.y;
+        CGFloat distance = (CGFloat)sqrt((double)(dx * dx + dy * dy));
+        if (distance > self.doubleClickTolerance) {
+            // Only keep counting when the new click lands close enough to the last one.
+            self.cursorClickCount = 1;
+        }
+    }
+    
+    if (self.cursorClickCount < 1) {
+        self.cursorClickCount = 1;
+    }
+}
+
+
+- (void)performSecondaryClickAt:(CGPoint)aLocation {
+    [self postClickDownOfType:kCGEventRightMouseDown upType:kCGEventRightMouseUp button:kCGMouseButtonRight
+                           at:aLocation clickState:1];
+}
+
+
+
+- (void)dragCursorTo:(CGPoint)aLocation phase:(NSTouchPhase)phase  {
+    [self postPendingClickUp];
+    if (phase == NSTouchPhaseEnded || phase == NSTouchPhaseCancelled) {
+        [self stopDraggingCursor];
+        return;
+    }
+    
+    
+    if (self.isLeftMouseDown) {
+        CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDragged, aLocation, kCGMouseButtonLeft);
+        CGEventSetIntegerValueField(event, kCGMouseEventClickState, self.cursorClickCount);
+        CGEventPost(kCGHIDEventTap, event);
+        CFRelease(event);
+        
+    } else {
+        [self moveCursorTo:aLocation];
+        [self updateCursorClickCountWithLocation:aLocation];
+        CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown, aLocation, kCGMouseButtonLeft);
+        CGEventSetIntegerValueField(event, kCGMouseEventClickState, self.cursorClickCount);
+        CGEventPost(kCGHIDEventTap, event);
+        CFRelease(event);
+        
+        self.isLeftMouseDown = YES;
+    }
+}
+
+
+- (void)stopDraggingCursor {
+    [self postPendingClickUp];
+    if (self.isLeftMouseDown) {
+        CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseUp, [self currentCursorLocation], kCGMouseButtonLeft);
+        CGEventSetIntegerValueField(event, kCGMouseEventClickState, self.cursorClickCount);
+        CGEventPost(kCGHIDEventTap, event);
+        CFRelease(event);
+        
+        self.isLeftMouseDown = NO;
+    }
+}
+
+
+
+- (void)scroll:(CGPoint)translation phase:(NSTouchPhase)phase {
+    [self postPendingClickUp];
+    [self stopDraggingCursor];
+
+    CFTimeInterval now = TUCNowSeconds();
+    BOOL isEnding = phase == NSTouchPhaseEnded || phase == NSTouchPhaseCancelled;
+
+    if (!self.isScrollGestureActive) {
+        [self cancelMomentumScroll];
+        self.isScrollGestureActive = YES;
+        self.scrollRemainder = CGPointZero;
+        _scrollSampleCount = 0;
+        self.fingerScrollPosition = translation;
+        self.filteredFingerPosition = translation;
+        self.filteredFingerVelocity = CGPointZero;
+        self.lastRawFingerPosition = translation;
+        self.filterLastTime = now;
+        self.scrollOutputPosition = translation;
+        self.scrollPathTime0 = now;
+        self.scrollPathTime1 = now;
+        self.scrollPathPosition0 = translation;
+        self.scrollPathPosition1 = translation;
+        self.isCoasting = NO;
+        self.isResumingAfterCoast = NO;
+        [self postScrollDelta:translation scrollPhase:kCGScrollPhaseBegan momentumPhase:kCGMomentumScrollPhaseNone];
+        [self startFrameDriver];
+    } else {
+        // Posted on the next display frames by `advanceScrollOutput`, not right away.
+        self.fingerScrollPosition = TUCPointAdd(self.fingerScrollPosition, translation);
+        [self appendScrollPathPosition:[self filterFingerPosition:self.fingerScrollPosition at:now] at:now];
+    }
+    // Stationary frames record zero movement, so a finger that stops before lifting doesn't fling.
+    // A movement-free liftoff is skipped: on screens without liftoff reports it arrives only after a
+    // timeout and would otherwise hide the real release velocity.
+    if (!isEnding || !CGPointEqualToPoint(translation, CGPointZero)) {
+        [self recordScrollSample:translation at:now];
+    }
+
+    if (!isEnding) {
+        return;
+    }
+
+    CGPoint velocity = self.isCoasting ? self.coastVelocity : [self releaseVelocity];
+    BOOL startsMomentum = self.momentumScrollEnabled && phase != NSTouchPhaseCancelled
+        && TUCLength(velocity) >= self.momentumStartThreshold;
+
+    // Inertia carries on from where the content is now. Catching up with the finger first would jump.
+    [self endScrollGestureCatchingUp:!startsMomentum];
+    if (startsMomentum) {
+        // Starts at the release velocity so the speed doesn't change at liftoff, like a trackpad.
+        [self startMomentumWithVelocity:velocity at:now];
+    }
+}
+
+- (void)endScrollGesture {
+    [self endScrollGestureCatchingUp:YES];
+}
+
+- (void)endScrollGestureCatchingUp:(BOOL)catchUp {
+    if (!self.isScrollGestureActive) {
+        return;
+    }
+    if (catchUp) {
+        [self postScrollDelta:TUCPointSubtract(self.scrollPathPosition1, self.scrollOutputPosition)
+                  scrollPhase:kCGScrollPhaseChanged
+                momentumPhase:kCGMomentumScrollPhaseNone];
+        self.scrollOutputPosition = self.scrollPathPosition1;
+    }
+    [self postScrollDelta:CGPointZero scrollPhase:kCGScrollPhaseEnded momentumPhase:kCGMomentumScrollPhaseNone];
+    self.isScrollGestureActive = NO;
+    self.isCoasting = NO;
+    self.isResumingAfterCoast = NO;
+}
+
+/**
+ Touch coordinates jitter by a fraction of a millimetre. When the finger moves slowly that jitter is as
+ large as the movement itself, so the content would step back and forth. A One Euro filter (Casiez et al.,
+ CHI 2012) smooths strongly at low speed and barely at high speed, where lag would be noticeable.
+ */
+- (CGPoint)filterFingerPosition:(CGPoint)raw at:(CFTimeInterval)time {
+    CFTimeInterval dt = (CFTimeInterval)TUCClamp((CGFloat)(time - self.filterLastTime), 0.001f, 0.05f);
+    self.filterLastTime = time;
+
+    CGPoint rawVelocity = TUCPointScale(TUCPointSubtract(raw, self.lastRawFingerPosition), (CGFloat)(1.0 / dt));
+    self.lastRawFingerPosition = raw;
+    CGFloat speedFactor = TUCSmoothingFactor(dt, kScrollFilterSpeedCutoff);
+    self.filteredFingerVelocity = TUCPointAdd(self.filteredFingerVelocity,
+                                              TUCPointScale(TUCPointSubtract(rawVelocity, self.filteredFingerVelocity), speedFactor));
+
+    CGFloat cutoff = kScrollFilterMinCutoff + kScrollFilterBeta * TUCLength(self.filteredFingerVelocity);
+    CGFloat factor = TUCSmoothingFactor(dt, cutoff);
+    self.filteredFingerPosition = TUCPointAdd(self.filteredFingerPosition,
+                                              TUCPointScale(TUCPointSubtract(raw, self.filteredFingerPosition), factor));
+    return self.filteredFingerPosition;
+}
+
+- (void)appendScrollPathPosition:(CGPoint)position at:(CFTimeInterval)time {
+    CFTimeInterval interval = time - self.scrollPathTime1;
+    if (interval > 0.002 && interval < 0.05) {
+        self.reportInterval = self.reportInterval * 0.8 + interval * 0.2;
+    }
+    self.scrollPathTime0 = self.scrollPathTime1;
+    self.scrollPathPosition0 = self.scrollPathPosition1;
+    self.scrollPathTime1 = time;
+    self.scrollPathPosition1 = position;
+
+    if (self.isCoasting) {
+        self.isCoasting = NO;
+        self.isResumingAfterCoast = YES;
+    }
+}
+
+- (CGPoint)scrollPathPositionAt:(CFTimeInterval)time {
+    if (time >= self.scrollPathTime1) {
+        return self.scrollPathPosition1;
+    }
+    CFTimeInterval span = self.scrollPathTime1 - self.scrollPathTime0;
+    if (time <= self.scrollPathTime0 || span <= 0) {
+        return self.scrollPathPosition0;
+    }
+    CGFloat t = (CGFloat)((time - self.scrollPathTime0) / span);
+    CGPoint p0 = self.scrollPathPosition0;
+    CGPoint p1 = self.scrollPathPosition1;
+    return CGPointMake(p0.x + (p1.x - p0.x) * t, p0.y + (p1.y - p0.y) * t);
+}
+
+/**
+ Touch reports and display frames run at different rates, so posting each report as it arrives moves
+ the content unevenly from frame to frame. Instead, each frame shows where the finger was one report
+ interval ago, interpolated between the two latest reports, which moves evenly at the cost of that delay.
+ */
+- (void)advanceScrollOutput {
+    CFTimeInterval now = TUCNowSeconds();
+    CFTimeInterval sampleTime = now - self.reportInterval;
+    CFTimeInterval sinceLastReport = now - self.scrollPathTime1;
+
+    // Some screens report a liftoff only after a timeout, so the reports just stop. Rather than freezing
+    // until then and jumping into inertia, keep moving at the release velocity: inertia then continues at
+    // the same speed. If the reports come back, the finger was still there and takes over again.
+    if (!self.isCoasting && sinceLastReport > kScrollCoastAfterReportIntervals * self.reportInterval) {
+        CGPoint velocity = [self releaseVelocity];
+        if (self.momentumScrollEnabled && TUCLength(velocity) >= self.momentumStartThreshold) {
+            self.isCoasting = YES;
+            self.coastVelocity = velocity;
+        }
+    }
+
+    CGPoint target;
+    if (self.isCoasting && sampleTime > self.scrollPathTime1) {
+        target = TUCPointAdd(self.scrollPathPosition1, TUCPointScale(self.coastVelocity, (CGFloat)(sampleTime - self.scrollPathTime1)));
+    } else {
+        target = [self scrollPathPositionAt:sampleTime];
+    }
+
+    CGPoint delta = TUCPointSubtract(target, self.scrollOutputPosition);
+    if (self.isResumingAfterCoast) {
+        // The content coasted ahead of the finger. Hold still until the finger catches up instead of moving back.
+        if (delta.x * self.coastVelocity.x + delta.y * self.coastVelocity.y < 0) {
+            return;
+        }
+        self.isResumingAfterCoast = NO;
+    }
+    self.scrollOutputPosition = target;
+    [self postScrollDelta:delta scrollPhase:kCGScrollPhaseChanged momentumPhase:kCGMomentumScrollPhaseNone];
+}
+
+- (void)recordScrollSample:(CGPoint)delta at:(CFTimeInterval)time {
+    if (_scrollSampleCount == kScrollSampleCapacity) {
+        memmove(_scrollSampleTimes, _scrollSampleTimes + 1, sizeof(CFTimeInterval) * (kScrollSampleCapacity - 1));
+        memmove(_scrollSampleDeltas, _scrollSampleDeltas + 1, sizeof(CGPoint) * (kScrollSampleCapacity - 1));
+        _scrollSampleCount -= 1;
+    }
+    _scrollSampleTimes[_scrollSampleCount] = time;
+    _scrollSampleDeltas[_scrollSampleCount] = delta;
+    _scrollSampleCount += 1;
+}
+
+/**
+ Finger velocity (px/s) at the last sample, from a quadratic least-squares fit over the last
+ `kScrollVelocityHorizon`, like Android's default touch velocity tracker. A plain average over that
+ window would lag behind a finger that is still speeding up when it flicks. Measured from the last
+ sample rather than from now, because screens that don't report liftoff deliver it only after a timeout.
+ */
+- (CGPoint)releaseVelocity {
+    NSInteger count = _scrollSampleCount;
+    if (count < 2) {
+        return CGPointZero;
+    }
+    CFTimeInterval lastTime = _scrollSampleTimes[count - 1];
+
+    // A finger that stopped before lifting doesn't fling.
+    NSInteger lastMoving = count - 1;
+    while (lastMoving > 0 && CGPointEqualToPoint(_scrollSampleDeltas[lastMoving], CGPointZero)) {
+        lastMoving -= 1;
+    }
+    if (lastTime - _scrollSampleTimes[lastMoving] > kScrollAssumeStoppedTime) {
+        return CGPointZero;
+    }
+
+    NSInteger first = count - 1;
+    while (first > 0 && lastTime - _scrollSampleTimes[first - 1] <= kScrollVelocityHorizon) {
+        first -= 1;
+    }
+    NSInteger n = count - first;
+    if (n < 2) {
+        return CGPointZero;
+    }
+
+    // Positions relative to the first sample, times relative to the last one (so the fit's slope at t = 0
+    // is the velocity we want). Each sample's delta is the movement since the previous sample.
+    double t[kScrollSampleCapacity], x[kScrollSampleCapacity], y[kScrollSampleCapacity];
+    double px = 0, py = 0;
+    for (NSInteger i = 0; i < n; i++) {
+        NSInteger index = first + i;
+        if (i > 0) {
+            px += _scrollSampleDeltas[index].x;
+            py += _scrollSampleDeltas[index].y;
+        }
+        t[i] = _scrollSampleTimes[index] - lastTime;
+        x[i] = px;
+        y[i] = py;
+    }
+    return CGPointMake((CGFloat)TUCFitSlopeAtZero(t, x, n), (CGFloat)TUCFitSlopeAtZero(t, y, n));
+}
+
+/// Slope at t = 0 of a least-squares quadratic through (t, value), or of a line if a quadratic is ill-defined.
+static double TUCFitSlopeAtZero(const double *t, const double *value, NSInteger n) {
+    double s0 = n, s1 = 0, s2 = 0, s3 = 0, s4 = 0, v0 = 0, v1 = 0, v2 = 0;
+    for (NSInteger i = 0; i < n; i++) {
+        double ti = t[i], ti2 = ti * ti;
+        s1 += ti; s2 += ti2; s3 += ti2 * ti; s4 += ti2 * ti2;
+        v0 += value[i]; v1 += value[i] * ti; v2 += value[i] * ti2;
+    }
+
+    if (n >= 3) {
+        // Normal equations for value = a + b t + c t^2, solved for b with Cramer's rule.
+        double det = s0 * (s2 * s4 - s3 * s3) - s1 * (s1 * s4 - s2 * s3) + s2 * (s1 * s3 - s2 * s2);
+        if (fabs(det) > 1e-18) {
+            double detB = s0 * (v1 * s4 - s3 * v2) - v0 * (s1 * s4 - s2 * s3) + s2 * (s1 * v2 - v1 * s2);
+            return detB / det;
+        }
+    }
+    double variance = s0 * s2 - s1 * s1;
+    return fabs(variance) > 1e-18 ? (s0 * v1 - s1 * v0) / variance : 0;
+}
+
+
+#pragma mark Inertia
+
+- (BOOL)isMomentumScrolling {
+    return self.isMomentumActive;
+}
+
+- (CGFloat)momentumScrollSpeed {
+    return self.isMomentumActive ? TUCLength(self.momentumScrollVelocity) : 0;
+}
+
+/*
+ Inertia follows Android's fling (android.widget.OverScroller): from the release speed and the scroll
+ friction it gets a total distance and a duration, both fixed when the finger lifts, so the content stops
+ at a definite point instead of crawling on for a while it looks still. Position eases out along
+ 1 - (1 - t/T)^(1/INFLEXION): with Android's constants that curve starts exactly at the release speed and
+ reaches zero speed at T.
+ */
+static const double kFlingInflexion = 0.35;                 // Scroller.INFLEXION
+static const double kFlingDecelerationRate = 2.3582017;     // Scroller.DECELERATION_RATE = ln(0.78) / ln(0.9)
+static const double kFlingFriction = 0.015;                 // ViewConfiguration.getScrollFriction()
+static const double kFlingGravity = 9.80665;                // SensorManager.GRAVITY_EARTH, m/s^2
+
+- (void)startMomentumWithVelocity:(CGPoint)velocity at:(CFTimeInterval)now {
+    [self cancelMomentumScroll];
+
+    CGFloat speed = TUCLength(velocity);
+    if (speed <= 0) {
+        return;
+    }
+
+    // Android's physical coefficient: gravity in pixels per second squared, times its 0.84 tuning factor.
+    CGFloat pointsPerMM = self.momentumPointsPerMM;
+    if (!isfinite(pointsPerMM) || pointsPerMM <= 0) {
+        pointsPerMM = 4.0;
+    }
+    double pointsPerInch = pointsPerMM * 25.4;
+    double physicalCoefficient = kFlingGravity * 39.37 * pointsPerInch * 0.84;
+
+    // The deceleration setting maps onto friction: the default 0.92 is Android's, higher glides further.
+    double decay = TUCClamp(self.momentumDecelerationPerFrame, 0.5f, 0.995f);
+    double friction = kFlingFriction * log(decay) / log(kDefaultMomentumDecelerationPerFrame);
+
+    double l = log(kFlingInflexion * speed / (friction * physicalCoefficient));
+    double rate = kFlingDecelerationRate;
+    double duration = exp(l / (rate - 1.0));
+    double distance = friction * physicalCoefficient * exp(rate / (rate - 1.0) * l);
+
+    // Inertia Amount stretches distance and duration together, which keeps the start speed.
+    double glide = MAX(self.momentumVelocityMultiplier, 0.1f);
+    duration *= glide;
+    distance *= glide;
+    if (!(duration > 0) || !(distance > 0)) {
+        return;
+    }
+
+    self.isMomentumActive = YES;
+    self.momentumStartTime = now;
+    self.momentumDuration = duration;
+    self.momentumDistance = distance;
+    self.momentumTravelled = 0;
+    self.momentumDirection = TUCPointScale(velocity, 1 / speed);
+    self.momentumScrollVelocity = velocity;
+    [self postScrollDelta:CGPointZero scrollPhase:0 momentumPhase:kCGMomentumScrollPhaseBegin];
+    [self startFrameDriver];
+}
+
+- (void)advanceMomentum {
+    if (!self.momentumScrollEnabled) {
+        [self cancelMomentumScroll];
+        return;
+    }
+
+    double exponent = 1.0 / kFlingInflexion;
+    double t = TUCNowSeconds() - self.momentumStartTime;
+    double remaining = MAX(0.0, 1.0 - t / self.momentumDuration);
+    double travelled = self.momentumDistance * (1.0 - pow(remaining, exponent));
+
+    [self postScrollDelta:TUCPointScale(self.momentumDirection, (CGFloat)(travelled - self.momentumTravelled))
+              scrollPhase:0 momentumPhase:kCGMomentumScrollPhaseContinue];
+    self.momentumTravelled = (CGFloat)travelled;
+
+    double speed = self.momentumDistance * exponent / self.momentumDuration * pow(remaining, exponent - 1.0);
+    self.momentumScrollVelocity = TUCPointScale(self.momentumDirection, (CGFloat)speed);
+
+    if (remaining <= 0) {
+        [self cancelMomentumScroll];
+    }
+}
+
+- (void)cancelMomentumScroll {
+    if (self.isMomentumActive) {
+        self.isMomentumActive = NO;
+        // Tell apps the inertia is over, e.g. when a new touch stops it.
+        [self postScrollDelta:CGPointZero scrollPhase:0 momentumPhase:kCGMomentumScrollPhaseEnd];
+    }
+    self.momentumScrollVelocity = CGPointZero;
+}
+
+
+#pragma mark Display Frames
+
+/**
+ Finger scrolling and inertia both post one step per display frame, driven from the refresh
+ of the screen the cursor (and so the touch) is on. The driver stops once neither is running.
+ */
+- (void)startFrameDriver {
+    if (self.frameDriver != nil) {
+        return;
+    }
+
+    if (@available(macOS 14.0, *)) {
+        NSScreen *screen = [self screenUnderCursor] ?: [NSScreen mainScreen];
+        CADisplayLink *displayLink = [screen displayLinkWithTarget:self selector:@selector(frameTick:)];
+        [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+        self.frameDriver = displayLink;
+    } else {
+        NSTimer *timer = [NSTimer timerWithTimeInterval:kFallbackFrameInterval
+                                                 target:self
+                                               selector:@selector(frameTick:)
+                                               userInfo:nil
+                                                repeats:YES];
+        [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+        self.frameDriver = timer;
+    }
+}
+
+- (void)frameTick:(id)sender {
+    BOOL running = NO;
+    if (self.isScrollGestureActive) {
+        [self advanceScrollOutput];
+        running = YES;
+    } else if (self.isMomentumActive) {
+        [self advanceMomentum];
+        running = YES;
+    }
+    if (self.isMagnifying) {
+        [self advancePinchOutput];
+        running = YES;
+    }
+    if (!running) {
+        [self.frameDriver invalidate];
+        self.frameDriver = nil;
+    }
+}
+
+- (nullable NSScreen *)screenUnderCursor {
+    CGPoint cursor = [self currentCursorLocation];
+    CGFloat primaryHeight = NSMaxY([[NSScreen screens] firstObject].frame);
+    NSPoint cocoaPoint = NSMakePoint(cursor.x, primaryHeight - cursor.y);
+    for (NSScreen *screen in [NSScreen screens]) {
+        if (NSPointInRect(cocoaPoint, screen.frame)) {
+            return screen;
+        }
+    }
+    return nil;
+}
+
+
+- (void)magnify:(CGFloat)magnification phase:(NSTouchPhase)phase {
+    [self stopDraggingCursor];
+    
+    if (phase == NSTouchPhaseMoved && magnification == 0) {
+        // no reason to post that
+        return;
+    }
+    
+    // start with a valid mouse event, as it has a valid timestamp; apps zoom around its location
+    CGPoint location = self.isMagnifying ? self.pinchCenter : [self currentCursorLocation];
+    CGEventRef event = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, location, kCGMouseButtonLeft);
+    
+    CGEventSetType(event, 29); // type gesture
+    CGEventSetFlags(event, 0);
+    
+    CGEventSetDoubleValueField(event, 113, magnification);
+    CGEventSetDoubleValueField(event, 114, magnification);
+    CGEventSetDoubleValueField(event, 116, magnification);
+    CGEventSetDoubleValueField(event, 118, magnification);
+    
+    // magic
+//    CGEventSetIntegerValueField(event, 55, 29); //if more touches on trackapd 30? about concurrent gestures???
+    CGEventSetIntegerValueField(event, 50, 248);
+    CGEventSetIntegerValueField(event, 101, 4);
+    CGEventSetIntegerValueField(event, 110, 8);
+    
+    
+    CGGesturePhase gesturePhase = kCGGesturePhaseEnded;
+    if (phase == NSTouchPhaseBegan) {
+        gesturePhase = kCGGesturePhaseBegan;
+    } else if (phase == NSTouchPhaseMoved || phase == NSTouchPhaseStationary) {
+        gesturePhase = kCGGesturePhaseChanged;
+    } else if (phase == NSTouchPhaseCancelled) {
+        gesturePhase = kCGGesturePhaseCancelled;
+    }
+
+    // The field takes the gesture phase. NSTouchPhaseEnded (8) would read as cancelled.
+    CGEventSetIntegerValueField(event, 132, gesturePhase);
+    
+    CGEventPost(kCGHIDEventTap, event);
+    CFRelease(event);
+}
+
+
+/*
+ Like Android's ScaleGestureDetector, the zoom follows the ratio of finger distances, so content scales
+ exactly with the fingers: spreading them to twice the distance doubles the size. macOS apps apply each
+ event's magnification as a factor of (1 + magnification), so each frame posts span / postedSpan - 1.
+ The distance is smoothed over ~12 ms and posted once per display frame, so finger jitter and the touch
+ report rate don't show up as uneven zooming. Each event is anchored at the point between the fingers
+ as it is now, not where the pinch began, so the content under the fingers stays under them.
+ */
+static const CFTimeInterval kPinchSmoothingTime = 0.012;
+
+- (void)updatePinchSpan:(CGFloat)span center:(CGPoint)center {
+    [self postPendingClickUp];
+    [self stopDraggingCursor];
+    if (span <= 0) {
+        return;
+    }
+    self.pinchTargetSpan = span;
+    self.pinchCenter = center;
+    if (!self.isMagnifying) {
+        [self moveCursorTo:center]; // zooming apps zoom around the pointer
+        self.isMagnifying = YES;
+        self.pinchFilteredSpan = span;
+        self.pinchPostedSpan = span;
+        self.pinchLastFrameTime = TUCNowSeconds();
+        [self magnify:0 phase:NSTouchPhaseBegan];
+        [self startFrameDriver];
+    }
+}
+
+- (void)advancePinchOutput {
+    CFTimeInterval now = TUCNowSeconds();
+    CFTimeInterval dt = now - self.pinchLastFrameTime;
+    self.pinchLastFrameTime = now;
+    CGFloat blend = (CGFloat)(1.0 - exp(-MAX(dt, 0.0) / kPinchSmoothingTime));
+    self.pinchFilteredSpan += (self.pinchTargetSpan - self.pinchFilteredSpan) * blend;
+    [self postPinchTowardSpan:self.pinchFilteredSpan];
+}
+
+- (void)postPinchTowardSpan:(CGFloat)span {
+    // Pinch Zoom Speed 1 zooms exactly with the fingers; higher values raise the ratio to that power.
+    CGFloat exponent = MAX(self.pinchZoomExponent, 0.1f);
+    CGFloat magnification = (CGFloat)pow(span / self.pinchPostedSpan, exponent) - 1;
+    if (fabs(magnification) < 0.0005) {
+        return;
+    }
+    [self magnify:magnification phase:NSTouchPhaseMoved];
+    self.pinchPostedSpan = span;
+}
+
+- (void)stopMagnifying {
+    if (self.isMagnifying) {
+        // Post what the smoothing still owed, so the final size matches the fingers.
+        [self postPinchTowardSpan:self.pinchTargetSpan];
+        self.isMagnifying = NO;
+        [self magnify:0 phase:NSTouchPhaseEnded];
+    }
+}
+
+- (void)beginHoldingShortcutSpec:(NSString *)shortcutSpec {
+    NSDictionary<NSString *, id> *descriptors = [self parseShortcutChordSpec:shortcutSpec];
+    if (descriptors == nil) {
+        return;
+    }
+
+    if (self.isHoldingShortcut) {
+        [self endHeldShortcut];
+    }
+
+    NSArray<NSDictionary<NSString *, NSNumber *> *> *modifierDescriptors = descriptors[@"modifiers"];
+    NSArray<NSNumber *> *nonModifierKeyCodes = descriptors[@"nonModifiers"];
+    CGEventFlags flags = [descriptors[@"flags"] unsignedLongLongValue];
+
+    CGEventFlags currentFlags = 0;
+    for (NSDictionary<NSString *, NSNumber *> *descriptor in modifierDescriptors) {
+        currentFlags |= descriptor[TUCShortcutDescriptorFlagKey].unsignedLongLongValue;
+        [self postKeyboardEventForKeyCode:descriptor[TUCShortcutDescriptorCodeKey].unsignedShortValue
+                                  keyDown:YES
+                                    flags:currentFlags];
+    }
+
+    for (NSNumber *keyCode in nonModifierKeyCodes) {
+        [self postKeyboardEventForKeyCode:keyCode.unsignedShortValue keyDown:YES flags:flags];
+    }
+
+    self.isHoldingShortcut = YES;
+    self.heldModifierDescriptors = modifierDescriptors;
+    self.heldNonModifierKeyCodes = nonModifierKeyCodes;
+    self.heldShortcutFlags = flags;
+}
+
+- (void)endHeldShortcut {
+    if (!self.isHoldingShortcut) {
+        return;
+    }
+
+    for (NSNumber *keyCode in [self.heldNonModifierKeyCodes reverseObjectEnumerator]) {
+        [self postKeyboardEventForKeyCode:keyCode.unsignedShortValue
+                                  keyDown:NO
+                                    flags:self.heldShortcutFlags];
+    }
+
+    CGEventFlags currentFlags = self.heldShortcutFlags;
+    for (NSDictionary<NSString *, NSNumber *> *descriptor in [self.heldModifierDescriptors reverseObjectEnumerator]) {
+        CGEventFlags nextFlags = currentFlags & ~descriptor[TUCShortcutDescriptorFlagKey].unsignedLongLongValue;
+        [self postKeyboardEventForKeyCode:descriptor[TUCShortcutDescriptorCodeKey].unsignedShortValue
+                                  keyDown:NO
+                                    flags:nextFlags];
+        currentFlags = nextFlags;
+    }
+
+    self.isHoldingShortcut = NO;
+    self.heldModifierDescriptors = @[];
+    self.heldNonModifierKeyCodes = @[];
+    self.heldShortcutFlags = 0;
+}
+
+- (void)performShortcutChordSpec:(NSString *)shortcutSpec {
+    NSDictionary<NSString *, id> *descriptors = [self parseShortcutChordSpec:shortcutSpec];
+    if (descriptors == nil) {
+        return;
+    }
+    [self pressAndReleaseShortcutChordWithDescriptors:descriptors];
+}
+
+- (void)performKeyCode:(CGKeyCode)keyCode modifierFlags:(CGEventFlags)flags {
+    static const struct { CGEventFlags flag; CGKeyCode keyCode; } modifierKeys[] = {
+        { kCGEventFlagMaskControl,   kVK_Control },
+        { kCGEventFlagMaskAlternate, kVK_Option },
+        { kCGEventFlagMaskShift,     kVK_Shift },
+        { kCGEventFlagMaskCommand,   kVK_Command },
+    };
+    const size_t modifierCount = sizeof(modifierKeys) / sizeof(modifierKeys[0]);
+
+    CGEventFlags currentFlags = 0;
+    for (size_t i = 0; i < modifierCount; i++) {
+        if (flags & modifierKeys[i].flag) {
+            currentFlags |= modifierKeys[i].flag;
+            [self postKeyboardEventForKeyCode:modifierKeys[i].keyCode keyDown:YES flags:currentFlags];
+        }
+    }
+
+    [self postKeyboardEventForKeyCode:keyCode keyDown:YES flags:currentFlags];
+    [self postKeyboardEventForKeyCode:keyCode keyDown:NO flags:currentFlags];
+
+    for (size_t i = modifierCount; i-- > 0;) {
+        if (flags & modifierKeys[i].flag) {
+            currentFlags &= ~modifierKeys[i].flag;
+            [self postKeyboardEventForKeyCode:modifierKeys[i].keyCode keyDown:NO flags:currentFlags];
+        }
+    }
+}
+
+- (void)performShortcutSequenceSpec:(NSString *)shortcutSequenceSpec {
+    NSString *normalized = [[shortcutSequenceSpec stringByReplacingOccurrencesOfString:@";" withString:@","]
+        stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (normalized.length == 0) {
+        return;
+    }
+
+    NSArray<NSString *> *steps = [normalized componentsSeparatedByString:@","];
+    for (NSString *step in steps) {
+        NSDictionary<NSString *, id> *descriptors = [self parseShortcutChordSpec:step];
+        if (descriptors == nil) {
+            return;
+        }
+        [self pressAndReleaseShortcutChordWithDescriptors:descriptors];
+        usleep(kShortcutSequenceStepDelayMicroseconds);
+    }
+}
+
+- (void)performMissionControl {
+    [self cancelMomentumScroll];
+    [self stopDraggingCursor];
+    [self stopMagnifying];
+
+    NSURL *missionControlURL = [NSURL fileURLWithPath:kMissionControlAppPath];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:kMissionControlAppPath]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[NSWorkspace sharedWorkspace] openURL:missionControlURL];
+        });
+    }
+
+    CGEventRef controlDown = CGEventCreateKeyboardEvent(NULL, kControlKeyCode, true);
+    CGEventRef upDown = CGEventCreateKeyboardEvent(NULL, kUpArrowKeyCode, true);
+    CGEventRef upUp = CGEventCreateKeyboardEvent(NULL, kUpArrowKeyCode, false);
+    CGEventRef controlUp = CGEventCreateKeyboardEvent(NULL, kControlKeyCode, false);
+
+    if (controlDown == NULL || upDown == NULL || upUp == NULL || controlUp == NULL) {
+        if (controlDown != NULL) {
+            CFRelease(controlDown);
+        }
+        if (upDown != NULL) {
+            CFRelease(upDown);
+        }
+        if (upUp != NULL) {
+            CFRelease(upUp);
+        }
+        if (controlUp != NULL) {
+            CFRelease(controlUp);
+        }
+        return;
+    }
+
+    CGEventSetFlags(controlDown, kCGEventFlagMaskControl);
+    CGEventSetFlags(upDown, kCGEventFlagMaskControl);
+    CGEventSetFlags(upUp, kCGEventFlagMaskControl);
+
+    CGEventPost(kCGHIDEventTap, controlDown);
+    CGEventPost(kCGHIDEventTap, upDown);
+    CGEventPost(kCGHIDEventTap, upUp);
+    CGEventPost(kCGHIDEventTap, controlUp);
+
+    CFRelease(controlDown);
+    CFRelease(upDown);
+    CFRelease(upUp);
+    CFRelease(controlUp);
+}
+
+#pragma mark - Space Swipes
+
+/*
+ A trackpad drives space switching with a stream of dock swipe events that carry the swipe's
+ progress, which is how the spaces follow the fingers and bounce at the ends. Since macOS 27 the
+ dock only reads them from the IOHIDEvent attached to the CGEvent, so one is made with IOKit's
+ IOHIDEvent functions and attached with SkyLight's SLEventSetIOHIDEvent. All of these are private
+ and looked up at run time; without them spaces switch with the keyboard shortcut instead.
+ */
+typedef struct __IOHIDEvent *TUCIOHIDEventRef;
+typedef TUCIOHIDEventRef (*TUCIOHIDEventCreateFn)(CFAllocatorRef, uint32_t type, uint64_t timestamp, uint32_t options);
+typedef void (*TUCIOHIDEventSetIntegerFn)(TUCIOHIDEventRef, uint32_t field, CFIndex value);
+typedef void (*TUCIOHIDEventSetDoubleFn)(TUCIOHIDEventRef, uint32_t field, double value);
+typedef void (*TUCIOHIDEventSetPhaseFn)(TUCIOHIDEventRef, uint16_t phase);
+typedef void (*TUCIOHIDEventAppendFn)(TUCIOHIDEventRef, TUCIOHIDEventRef, uint32_t options);
+typedef void (*TUCEventSetIOHIDEventFn)(CGEventRef, TUCIOHIDEventRef);
+
+static TUCIOHIDEventCreateFn TUCIOHIDEventCreate;
+static TUCIOHIDEventSetIntegerFn TUCIOHIDEventSetIntegerValue;
+static TUCIOHIDEventSetDoubleFn TUCIOHIDEventSetDoubleValue;
+static TUCIOHIDEventSetPhaseFn TUCIOHIDEventSetPhase;
+static TUCIOHIDEventAppendFn TUCIOHIDEventAppendEvent;
+static TUCEventSetIOHIDEventFn TUCEventSetIOHIDEvent;
+
+static const uint32_t kTUCHIDEventTypeVelocity = 9;
+static const uint32_t kTUCHIDEventTypeDockSwipe = 23;
+static const uint32_t kTUCDockSwipeFieldMotion = (23 << 16) | 1;
+static const uint32_t kTUCDockSwipeFieldProgress = (23 << 16) | 2;
+static const uint32_t kTUCDockSwipeFieldFlavor = (23 << 16) | 5;
+static const uint32_t kTUCVelocityFieldX = (9 << 16) | 0;
+static const uint32_t kTUCVelocityFieldY = (9 << 16) | 1;
+static const CFIndex kTUCGestureMotionHorizontal = 1;
+static const CFIndex kTUCGestureFlavorDockPrimary = 3;
+static const uint16_t kTUCGesturePhaseBegan = 1, kTUCGesturePhaseChanged = 2, kTUCGesturePhaseEnded = 4, kTUCGesturePhaseCancelled = 8;
+static const CGEventType kTUCEventTypeDockControl = 30;
+
+static BOOL TUCLoadSpaceSwipeFunctions(void) {
+    static BOOL loaded = NO;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        void *iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY);
+        void *skylight = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY);
+        if (iokit == NULL || skylight == NULL) {
+            return;
+        }
+        TUCIOHIDEventCreate = (TUCIOHIDEventCreateFn)dlsym(iokit, "IOHIDEventCreate");
+        TUCIOHIDEventSetIntegerValue = (TUCIOHIDEventSetIntegerFn)dlsym(iokit, "IOHIDEventSetIntegerValue");
+        TUCIOHIDEventSetDoubleValue = (TUCIOHIDEventSetDoubleFn)dlsym(iokit, "IOHIDEventSetDoubleValue");
+        TUCIOHIDEventSetPhase = (TUCIOHIDEventSetPhaseFn)dlsym(iokit, "IOHIDEventSetPhase");
+        TUCIOHIDEventAppendEvent = (TUCIOHIDEventAppendFn)dlsym(iokit, "IOHIDEventAppendEvent");
+        TUCEventSetIOHIDEvent = (TUCEventSetIOHIDEventFn)dlsym(skylight, "SLEventSetIOHIDEvent");
+        loaded = TUCIOHIDEventCreate && TUCIOHIDEventSetIntegerValue && TUCIOHIDEventSetDoubleValue
+            && TUCIOHIDEventSetPhase && TUCIOHIDEventAppendEvent && TUCEventSetIOHIDEvent;
+    });
+    return loaded;
+}
+
+static void TUCPostDockSwipe(uint16_t phase, double progress, double velocity) {
+    TUCIOHIDEventRef swipe = TUCIOHIDEventCreate(kCFAllocatorDefault, kTUCHIDEventTypeDockSwipe, mach_absolute_time(), 0);
+    if (swipe == NULL) {
+        return;
+    }
+    TUCIOHIDEventSetPhase(swipe, phase);
+    TUCIOHIDEventSetIntegerValue(swipe, kTUCDockSwipeFieldMotion, kTUCGestureMotionHorizontal);
+    TUCIOHIDEventSetIntegerValue(swipe, kTUCDockSwipeFieldFlavor, kTUCGestureFlavorDockPrimary);
+    TUCIOHIDEventSetDoubleValue(swipe, kTUCDockSwipeFieldProgress, progress);
+    if (phase == kTUCGesturePhaseEnded || phase == kTUCGesturePhaseCancelled) {
+        // The release speed decides whether the switch finishes or springs back.
+        TUCIOHIDEventRef speed = TUCIOHIDEventCreate(kCFAllocatorDefault, kTUCHIDEventTypeVelocity, mach_absolute_time(), 0);
+        if (speed != NULL) {
+            TUCIOHIDEventSetDoubleValue(speed, kTUCVelocityFieldX, velocity);
+            TUCIOHIDEventSetDoubleValue(speed, kTUCVelocityFieldY, velocity);
+            TUCIOHIDEventAppendEvent(swipe, speed, 0);
+            CFRelease(speed);
+        }
+    }
+    CGEventRef event = CGEventCreate(NULL);
+    if (event != NULL) {
+        CGEventSetType(event, kTUCEventTypeDockControl);
+        TUCEventSetIOHIDEvent(event, swipe);
+        CGEventPost(kCGSessionEventTap, event);
+        CFRelease(event);
+    }
+    CFRelease(swipe);
+}
+
+- (BOOL)canSwipeSpacesContinuously {
+    return TUCLoadSpaceSwipeFunctions();
+}
+
+- (void)beginSpaceSwipe {
+    if (!TUCLoadSpaceSwipeFunctions()) {
+        return;
+    }
+    [self cancelMomentumScroll];
+    [self stopDraggingCursor];
+    [self stopMagnifying];
+    self.spaceSwipeProgress = 0;
+    TUCPostDockSwipe(kTUCGesturePhaseBegan, 0, 0);
+}
+
+- (void)updateSpaceSwipeProgress:(CGFloat)progress {
+    if (!TUCLoadSpaceSwipeFunctions() || progress == self.spaceSwipeProgress) {
+        return;
+    }
+    self.spaceSwipeProgress = progress;
+    TUCPostDockSwipe(kTUCGesturePhaseChanged, progress, 0);
+}
+
+- (void)endSpaceSwipeWithVelocity:(CGFloat)velocity cancelled:(BOOL)cancelled {
+    if (!TUCLoadSpaceSwipeFunctions()) {
+        return;
+    }
+    TUCPostDockSwipe(cancelled ? kTUCGesturePhaseCancelled : kTUCGesturePhaseEnded, self.spaceSwipeProgress, velocity);
+}
+
+- (void)switchSpaceToRight:(BOOL)toRight {
+    [self cancelMomentumScroll];
+    [self stopDraggingCursor];
+    [self stopMagnifying];
+
+    // The system shortcut is registered with the function flag that real arrow keys carry,
+    // so an arrow press without it doesn't switch spaces.
+    CGKeyCode arrow = toRight ? kVK_RightArrow : kVK_LeftArrow;
+    CGEventFlags arrowFlags = kCGEventFlagMaskControl | kCGEventFlagMaskSecondaryFn | kCGEventFlagMaskNumericPad;
+    [self postKeyboardEventForKeyCode:kControlKeyCode keyDown:YES flags:kCGEventFlagMaskControl];
+    [self postKeyboardEventForKeyCode:arrow keyDown:YES flags:arrowFlags];
+    [self postKeyboardEventForKeyCode:arrow keyDown:NO flags:arrowFlags];
+    [self postKeyboardEventForKeyCode:kControlKeyCode keyDown:NO flags:0];
+}
+
+@end

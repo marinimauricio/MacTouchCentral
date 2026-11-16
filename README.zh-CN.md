@@ -1,0 +1,279 @@
+<div align="center">
+
+<img src="TouchMyMac/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="TouchMyMac 图标">
+
+# TouchMyMac
+
+**让每一台 Mac 都能触控，不只是新款 MacBook Pro。**
+
+[English](README.md) · **简体中文**
+
+[![最新版本](https://img.shields.io/github/v/release/marinimauricio/TouchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/TouchMyMac/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/marinimauricio/TouchMyMac/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/TouchMyMac/releases)
+[![macOS 12+](https://img.shields.io/badge/macOS-12%2B-111111?style=flat-square&logo=apple&logoColor=white)](#-安装)
+[![Apple 芯片](https://img.shields.io/badge/Apple%20silicon-arm64-555555?style=flat-square)](#-安装)
+[![许可证: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/marinimauricio/TouchMyMac?style=flat-square&color=e3b341)](https://github.com/marinimauricio/TouchMyMac/stargazers)
+[![最近提交](https://img.shields.io/github/last-commit/marinimauricio/TouchMyMac?style=flat-square)](https://github.com/marinimauricio/TouchMyMac/commits/main)
+
+[**下载**](https://github.com/marinimauricio/TouchMyMac/releases/latest) · [手势](#-手势) · [安装](#-安装) · [常见问题](#-常见问题) · [从源码构建](#-从源码构建)
+
+</div>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-zh-dark.svg">
+  <img src="docs/images/hero-zh-light.svg" width="720" alt="在显示器上用触摸滚动、捏合缩放、切换桌面和呼出键盘">
+</picture>
+</p>
+
+TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备。它在用户态直接读取 HID 触摸数据，转换成点击、带惯性的滚动、拖拽、多指手势、快捷键和屏幕键盘，用起来不像在用鼠标模拟，而更接近 iPad。
+
+## 🍎 不只是新款 MacBook Pro 才能触控
+
+2026 年 10 月，苹果发布了第一台带触摸屏的 Mac：屏幕内置触控的 OLED MacBook Pro。它的触控只属于这台笔记本自己的屏幕。TouchMyMac 把类似的交互带给其他屏幕和其他 Mac：
+
+| | 触摸屏 MacBook Pro | TouchMyMac |
+|---|---|---|
+| **哪块屏幕** | 笔记本自带的屏幕 | 任何 USB 触摸屏：桌面显示器、便携屏、触控白板 |
+| **哪台 Mac** | 新款 MacBook Pro | 任何 macOS 12 或更高版本的 Mac |
+| **花费** | 随新款 MacBook Pro 提供 | 免费开源 |
+| **手势** | 滚动、捏合缩放、左右滑动翻页或切换桌面 | 同样支持，另有浮动键盘、三到五指手势、快捷键映射和可调的滚动手感 |
+
+## ✨ 亮点
+
+| | |
+|---|---|
+| 👆 **直接触控** | 轻点即点击，拖动即滚动，按住即按下鼠标、再移动即拖拽（按下时手指下会出现小圆点），双指轻点即右键。轻点、滚动和长按的区分方式和 Android 一样，快速双击、三击也不会漏。滑块、滚动条和标题栏可以直接拖。 |
+| 🌀 **触控板般的滚动** | 滚动跟随屏幕刷新率，过滤掉触摸抖动，松手后无停顿地转入惯性；滚动时隐藏指针。 |
+| 🖐 **多指手势** | 以手指为中心捏合缩放，调出调度中心、切换桌面、显示或隐藏键盘，四指和五指手势可以绑定自定义快捷键。 |
+| ⌨️ **浮动键盘** | 完整的 Mac 键盘布局，一按就出字，打字再快、手指再重叠也不会漏字；能切换输入法，还能缩成 mini 键盘。 |
+| 🔌 **兼容更多屏幕** | 自动把为 Windows 设计的触摸屏从单点鼠标模式切到多点触摸，并支持开机自启，开机就能用。 |
+| 🩺 **状态与诊断** | 菜单栏菜单里能看到辅助功能权限是否已开启、触摸落在哪块显示器上；设置里还有触摸计数和手势识别结果，方便调校噪声较大的屏幕。 |
+| 🌐 **中文和英文** | 界面跟随系统语言，也可以在 设置 → 通用 → 语言 里单独选择。 |
+| 🔒 **纯用户态** | 不需要内核扩展或额外安装驱动：一个 App，一项辅助功能权限（部分屏幕还需要输入监控）。 |
+
+## 🖐 手势
+
+<table>
+<tr><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/tap-dark.svg"><img src="docs/images/gestures/tap-light.svg" width="200" alt="轻点即点击"></picture><br><sub><b>轻点</b>即点击</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/scroll-dark.svg"><img src="docs/images/gestures/scroll-light.svg" width="200" alt="拖动滚动，轻甩带惯性"></picture><br><sub><b>拖动</b>滚动，轻甩带惯性</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/hold-drag-dark.svg"><img src="docs/images/gestures/hold-drag-light.svg" width="200" alt="按住再拖移动窗口"></picture><br><sub><b>按住再拖</b>移动窗口</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/two-finger-tap-dark.svg"><img src="docs/images/gestures/two-finger-tap-light.svg" width="200" alt="双指轻点即右键"></picture><br><sub><b>双指轻点</b>即右键</sub></td></tr>
+<tr><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/pinch-dark.svg"><img src="docs/images/gestures/pinch-light.svg" width="200" alt="双指捏合缩放"></picture><br><sub><b>双指捏合</b>缩放</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/mission-control-dark.svg"><img src="docs/images/gestures/mission-control-light.svg" width="200" alt="三指上滑调度中心"></picture><br><sub><b>三指上滑</b>调度中心</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/desktops-dark.svg"><img src="docs/images/gestures/desktops-light.svg" width="200" alt="三指左右滑切换桌面"></picture><br><sub><b>三指左右滑</b>切换桌面</sub></td><td align="center" width="25%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/gestures/keyboard-dark.svg"><img src="docs/images/gestures/keyboard-light.svg" width="200" alt="四指上滑呼出键盘"></picture><br><sub><b>四指上滑</b>呼出键盘</sub></td></tr>
+</table>
+
+| 手势 | 功能 |
+|---|---|
+| 轻点 | 点击（快速点两下为双击） |
+| 单指拖动 | 滚动，甩一下会带惯性 |
+| 按住不动 0.4 秒再移动 | 拖拽（选中文字、移动窗口和文件），按下时手指下会出现小圆点 |
+| 拖动滑块、滚动条、分割线、标题栏或窗口边缘 | 直接拖动它，不用先按住 |
+| 双指同时轻点 | 右键，和 Mac 触控板一样 |
+| 双指捏合 | 以手指为中心缩放（倍率可在 Pinch Zoom Speed 里调） |
+| 三指上滑 | 调度中心 |
+| 三指左滑 / 右滑 | 切换桌面和全屏 App |
+| 四指上滑 / 下滑 | 显示 / 隐藏浮动键盘（在键盘上也能用） |
+| 四指左滑 | 快捷键序列（默认 `cmd+a, delete`） |
+| 五指按住不动 | 持续按住某个快捷键（默认 `fn`） |
+
+## ⌨️ 浮动键盘
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/keyboard-dark.png">
+  <img src="docs/images/keyboard-light.png" alt="浮动键盘：完整的 Mac 键盘布局">
+</picture>
+
+- 完整的 Mac（美式 ANSI）布局，包含数字行、符号和方向键
+- 一按就出字（按下后 45 毫秒内，提前抬手则立即出字），每根手指各打各的键，快速打字不漏字
+- Shift、Control、Option、Command 为粘滞键，可以打出 ⌘C 这类快捷键；支持 Caps Lock
+- 按住 Delete、空格和方向键会连续输入
+- 始终浮在所有窗口之上；按住顶部的拖动条或键盘边缘的空白处就能拖动，并会记住你放的位置
+- 点隐藏键或四指下滑即可收起，手指放在键盘上下滑也可以
+- 隐藏键旁边的 🌐 键用来切换输入法，比如在英文和拼音之间切换。它使用你在“键盘快捷键 → 输入法”里设置的快捷键，键帽上显示当前的输入法
+- 右上角的按钮可以把键盘缩成 mini 键盘（布局不变，尺寸缩到 60%），并会记住大小
+
+## 🌀 滚动是怎么做的
+
+合成出来的滚动事件很容易让人觉得卡、不跟手，所以 TouchMyMac 参考了手机和触控板的做法：
+
+- **每帧只滚一步。** 触摸报告（常见的是 120Hz 左右）和屏幕帧的节奏对不上，所以按每一帧对手指轨迹重新采样，而不是来一个报告发一次。
+- **过滤抖动。** 用 One Euro 滤波：慢速时强力平滑，因为这时触摸噪声和真实位移差不多大；快速时几乎不平滑，避免延迟。
+- **离手速度参照 Android。** 对最近 100ms 做二次拟合；如果离手前 40ms 手指已经停住，就不甩出去。
+- **无缝衔接惯性。** 惯性从离手速度开始。如果触摸报告短暂中断，内容会继续滑行，不会停顿。
+- **惯性参照 Android。** 滑行距离和时长由离手速度和 Android 的滚动摩擦系数算出，内容会停在一个确定的位置，不会一直慢慢蹭。
+- **带触控板的滚动相位**，让各个 App 按触控板滚动来处理这些事件。
+
+## 👆 轻点是怎么识别的
+
+单指的判定方式和 Android 的 GestureDetector 一样：
+
+- **先算作"可能是轻点"**：手指离开落点超过 6 毫米就变成滚动；在 6 毫米以内停够 Hold Duration（0.4 秒）就在落点按下鼠标键，之后移动即拖拽。抬手时如果还是"可能是轻点"，就在手指落下的位置点击，不管按了多久。
+- **阈值比手机上大**（Android 大约 1.3 毫米），因为手指落下时会压扁、滚动，我们实测触点会因此漂移最多 3 毫米。
+- **抬手以屏幕报告为准。** 很多屏幕报告抬手时不带坐标，TouchMyMac 也会立刻结束这次触摸，所以轻点响应快，快速双击不会被并成一次。
+- **每次点击按住 40 毫秒**再松开，和真实鼠标一样，控件能显示按下的样子，也不会漏点。
+- **双指**：两指距离先变化 8 毫米就是捏合，两指中点先移动 6 毫米就是滚动。缩放跟随两指距离的比例，以两指中点为中心。
+
+## 📦 安装
+
+1. 从 [**Releases**](https://github.com/marinimauricio/TouchMyMac/releases/latest) 下载 `TouchMyMac-x.y.z-macOS-unsigned.zip`，解压后把 `TouchMyMac.app` 拖到 `/Applications`。
+2. 打开 App。它没有经过公证，第一次打开会被 macOS 拦下：到 **系统设置 → 隐私与安全性**，点 **仍要打开**。
+3. 按提示授予 **辅助功能** 权限（系统设置 → 隐私与安全性 → 辅助功能）。TouchMyMac 需要它来发送点击、滚动和按键。有些触摸屏还需要 **输入监控** 权限才能读取；只有你的屏幕需要时 TouchMyMac 才会申请，这时菜单栏菜单里会多出一行 Input Monitoring。
+4. 连接触摸屏。TouchMyMac 会把触摸对应到外接显示器，不会选 Mac 自带的屏幕。如果接了多块外接显示器，看一下菜单栏菜单里的 **Touchscreen** 一项，在那里选中触摸屏。
+
+> [!IMPORTANT]
+> 发布的版本是 ad-hoc 签名，macOS 会把每次更新都当成一个新 App。更新之后，请**在辅助功能列表（如果用到了，还有输入监控列表）里删掉 TouchMyMac 再重新加回来**，否则即使开关显示为打开，触摸也不会有反应。
+
+> [!NOTE]
+> 发布的 zip 是为 Apple 芯片构建的。Intel Mac 可以[从源码构建](#-从源码构建)，但没有测试过。
+
+## ⚙️ 设置
+
+以下选项都在设置窗口里（菜单栏图标 → Settings…）。
+
+| 设置项 | 默认值 | 作用 |
+|---|---|---|
+| Open at Login | 关 | 登录时自动启动 TouchMyMac（需要 macOS 13 或更高版本） |
+| Drag Controls Directly | 开 | 滑块、滚动条、分割线、标题栏、窗口边缘和调度中心里的窗口会直接跟着手指走；其他地方拖动仍是滚动 |
+| Small Target Assist | 开 | 手指落在分割线、窗口边缘或角落、窗口的关闭/最小化/缩放按钮旁边一点也能点中；不报告标题栏的应用里拖动窗口顶部可以移动窗口；调度中心里手指下的桌面会显示关闭按钮 |
+| Hold Duration | 0.4 秒 | 手指按住不动多久之后按下鼠标键，之后移动就是拖拽而不是滚动 |
+| Scroll Speed | 1.0 | 手指移动多少，内容就滚多少；1.0 表示内容紧贴手指 |
+| Hide Pointer While Scrolling | 开 | 手指滚动期间隐藏指针 |
+| Scroll Inertia | 开 | 甩动后继续滚动 |
+| Decay Speed | 0.92 | 惯性减速的快慢（越大滑得越久） |
+| Inertia Amount | 1.0 | 惯性能滑多远 |
+| Pinch Zoom Speed | 1.5 | 捏合缩放的倍率，1.0 时严格跟着手指 |
+| Double Click Zone | 8 毫米 | 两次轻点相距多近才算双击 |
+| Error Resistance | 4 | 对容易丢失触点的屏幕，等多少个报告再判定手指离开 |
+| Ignore Origin Touches | 开 | 忽略部分屏幕会发出的 (0, 0) 假触点 |
+| 右键 / 缩放 / 调度中心 / 切换桌面 / 键盘 | 开 | 单独开关各个手势 |
+| Five-Finger Hold Shortcut | `fn` | 五指按住时持续按下的组合键 |
+| Four-Finger Left Swipe Sequence | `cmd+a, delete` | 四指左滑时依次触发的快捷键 |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
+  <img src="docs/images/settings-light.png" alt="TouchMyMac 设置窗口">
+</picture>
+
+## 🖥 已测试的硬件
+
+| 显示器 | 状态 |
+|---|---|
+| LG Smart Monitor Swing | ✅ 本分支实测可用 |
+| ELAN 触摸屏、LG CreateBoard | 🧪 贡献者用自己的补丁跑通过（[#2](https://github.com/marinimauricio/TouchMyMac/pull/2)、[#3](https://github.com/marinimauricio/TouchMyMac/pull/3)）；这些修复已进入 1.5.0，但还没在 1.5.0 上确认 |
+| 其他 USB HID 触摸屏 | ❔ 如果在 Windows 上免驱可用，这里大概率也能用；尚未验证 |
+
+在别的屏幕上用起来了？欢迎提 issue 或 PR 把它加到这里。
+
+## ❓ 常见问题
+
+<details>
+<summary><b>安装或更新之后，触摸没有任何反应</b></summary>
+
+辅助功能或输入监控权限缺失或已经失效，这时菜单栏菜单里对应的一项会显示 **Not Allowed**，点它就能打开对应的设置页。在 系统设置 → 隐私与安全性 里对应的列表中删掉 TouchMyMac，重新添加 `/Applications/TouchMyMac.app`，然后退出并重新打开 App。
+</details>
+
+<details>
+<summary><b>macOS 提示 App 已损坏或无法打开</b></summary>
+
+这个版本没有经过公证。到 系统设置 → 隐私与安全性 点 **仍要打开**。如果还是打不开，清除下载时附加的隔离标记：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/TouchMyMac.app
+```
+</details>
+
+<details>
+<summary><b>想滚动，结果却选中了内容或拖动了东西</b></summary>
+
+手指放上去后停顿超过 Hold Duration 再移动，就会变成拖拽。起手时早点移动，或者在 Settings → Tuning 里把 Hold Duration 调大。
+
+滑块、滚动条、分割线、窗口标题栏和窗口边缘一拖就会动，调度中心里的窗口也是一拖就动。打开 Small Target Assist（默认开启）时，手指落在分割线、窗口边缘或窗口左上角三个按钮旁边一点也能点中；调度中心里桌面的关闭按钮平时要悬停才出现，也能直接点到。如果你希望所有地方拖动都是滚动，可以在 Settings → Gestures 里关掉 Drag Controls Directly。
+</details>
+
+<details>
+<summary><b>拖滑块或推子时，页面滚动了，滑块没动</b></summary>
+
+TouchMyMac 通过 macOS 的辅助功能来判断手指下面是什么。有些 App 的控件是自己画的，比如一些音频软件里的推子，它们没有告诉 macOS 那里有个控件，所以在上面拖动会变成滚动。先按住不动一会儿（Hold Duration），再移动手指即可。
+</details>
+
+<details>
+<summary><b>触摸落到了别的显示器上</b></summary>
+
+打开菜单栏菜单，在 **Touchscreen** 的子菜单里选中触摸屏（也可以在 Settings → General → Assign Mouse Events to 里选），TouchMyMac 会记住这个选择。选 **Automatic** 可以让它重新自动选择：它会跳过 Mac 自带的屏幕，但接了多块外接显示器时只能靠猜。
+</details>
+
+<details>
+<summary><b>点哪儿都不准，多指手势也没反应</b></summary>
+
+这说明 TouchMyMac 没有收到触摸数据，macOS 只是把屏幕当成普通鼠标，映射到它自己选的那块显示器上。如果菜单栏菜单里显示 **Input Monitoring: Not Allowed**，请打开这项权限：有些屏幕没有它就读不到数据，Settings → Diagnostics 里的 Touch Reports 会一直是 0。
+</details>
+
+<details>
+<summary><b>触摸只会移动指针，而且是在指针当前所在的屏幕上</b></summary>
+
+很多为 Windows 设计的触摸屏开机时是单点鼠标模式，要电脑切换后才会发送多点触摸数据。TouchMyMac 现在会像 Windows 一样，在触摸屏连接时完成切换。如果触摸还是只会移动指针，把触摸屏的 USB 线拔掉重插；还不行的话，请附上 `hidutil list` 的输出提个 issue。
+</details>
+
+<details>
+<summary><b>输入跳动，或者触点卡住不放</b></summary>
+
+把 Error Resistance 调大，并保持 Ignore Origin Touches 打开。Diagnostics 页面会实时显示触摸数量和识别到的手势，方便定位问题。
+</details>
+
+<details>
+<summary><b>怎么在中文和英文界面之间切换？</b></summary>
+
+在 **设置 → 通用 → 语言** 里选择，然后点“立即重新启动”。默认的“跟随系统”会跟随系统语言：在 系统设置 → 通用 → 语言与地区 里简体中文排在最前面时显示中文，否则显示英文。
+</details>
+
+## 🛠 从源码构建
+
+```bash
+git clone https://github.com/marinimauricio/TouchMyMac.git
+cd touchMyMac
+open TouchMyMac.xcodeproj
+```
+
+也可以一步完成构建、安装到 `/Applications` 并启动：
+
+```bash
+scripts/build_install_run.sh
+```
+
+需要 Xcode 和 macOS 12 或更高版本。
+
+## 🗂 项目结构
+
+```
+TouchMyMac/   App：设置界面、菜单栏图标、诊断工具、浮动键盘
+Core/         TouchUpCore：HID 解析、触点跟踪、手势识别、事件发送
+scripts/      构建并安装的脚本
+docs/         README 用到的图片
+```
+
+## 🧭 路线图
+
+- [x] 完整 Mac 布局的浮动键盘
+- [x] 双指轻点右键
+- [x] 跟随屏幕刷新、过滤抖动、惯性无缝衔接的滚动
+- [x] 三指左右滑切换桌面
+- [x] 开机自启
+- [x] 把为 Windows 设计的触摸屏从鼠标模式切到多点触摸
+- [ ] 触控板手势事件，让更多 App 支持左右滑动翻页和边缘回弹
+- [ ] 把滚动放到独立线程，主线程忙的时候也不掉帧
+- [ ] 签名并公证的发布版本
+
+## 🙏 致谢
+
+TouchMyMac 基于 [Sebastian Hueber](https://hci.rwth-aachen.de/touchup)（亚琛工业大学）原版的 TouchMyMac 和 TouchUpCore。本分支沿用了它的基础，并加入了手势集、快捷键映射、浮动键盘、设置界面和滚动方面的改进。
+
+## 📄 许可证
+
+[MIT](LICENSE) © 2024 Sebastian Hueber, © 2026 Jinghui Chen
+
+## ⭐ Star 趋势
+
+<a href="https://star-history.com/#marinimauricio/TouchMyMac&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date&theme=dark">
+    <img src="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date" alt="Star 趋势图" width="600">
+  </picture>
+</a>

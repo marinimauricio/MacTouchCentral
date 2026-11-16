@@ -31,6 +31,12 @@ TouchMyMac turns an external USB touchscreen into a real macOS input device. It 
 
 > **Project status for MK Technology MK S2300-G100:** single-touch operation is working on macOS, and 10-finger multitouch has been independently confirmed on Windows 11. The connected MK firmware currently exposes only one-contact reports to macOS, so native multitouch support for this exact device remains an open reverse-engineering task. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [the MK test report](docs/MK-S2300-G100.md).
 
+## ❤️ Support
+
+If TouchMyMac helps you, consider supporting its development. Your support helps fund device compatibility testing and continued macOS development.
+
+[Donate via PayPal](https://paypal.me/mlsmarini)
+
 ## 🍎 Touch beyond the new MacBook Pro
 
 In October 2026 Apple announced the first Mac with a touchscreen: a MacBook Pro whose OLED display has touch built in. That touch belongs to the laptop's own screen. TouchMyMac brings the same kind of interaction to the screens and Macs that don't have it:

@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
-// Draws the TouchMyMac app icon with Core Graphics and writes every size the
+// Draws the MacTouchCentral app icon with Core Graphics and writes every size the
 // macOS AppIcon set needs. Run from the repo root:
-//   swift scripts/make_app_icon.swift TouchMyMac/Assets.xcassets/AppIcon.appiconset
+//   swift scripts/make_app_icon.swift MacTouchCentral/Assets.xcassets/AppIcon.appiconset
 import AppKit
 import CoreGraphics
 

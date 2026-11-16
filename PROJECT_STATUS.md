@@ -1,4 +1,4 @@
-# TouchMyMac — project status
+# MacTouchCentral — project status
 
 Last updated: 2026-11-16
 
@@ -8,7 +8,7 @@ Provide a user-space macOS bridge for external USB touchscreens, with reliable s
 
 ## Completed
 
-- Recovered and versioned the TouchMyMac macOS application and its TouchUpCore HID/input framework.
+- Recovered and versioned the MacTouchCentral macOS application and its TouchUpCore HID/input framework.
 - Confirmed the target device identity: MK Technology MK S2300-G100, USB VID `1FF7`, PID `0013`.
 - Implemented and validated single-finger touch on macOS: tap-to-click, movement and hold-then-drag behavior.
 - Corrected the single-finger drag mapping so a drag gesture is sent as a drag action instead of being misclassified as scrolling.
@@ -50,8 +50,8 @@ No undocumented USB `SET_REPORT`, firmware update, or vendor command should be s
 
 ```bash
 xcodebuild \
-  -project TouchMyMac.xcodeproj \
-  -scheme TouchMyMac \
+  -project MacTouchCentral.xcodeproj \
+  -scheme MacTouchCentral \
   -destination 'platform=macOS,arch=arm64' \
   MACOSX_DEPLOYMENT_TARGET=12.0 \
   CODE_SIGNING_ALLOWED=NO \

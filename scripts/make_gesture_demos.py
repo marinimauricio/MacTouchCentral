@@ -354,7 +354,7 @@ def hero(lang, theme):
                       f'font-weight="500" fill="{th["label_text"]}">{HERO_LABELS[lang][i]}</text>')
     scale = 2.8
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 730" width="960" height="730" role="img" '
-            f'aria-label="TouchMyMac gestures on a touchscreen monitor">{style(20, theme, css)}'
+            f'aria-label="MacTouchCentral gestures on a touchscreen monitor">{style(20, theme, css)}'
             f'<rect x="420" y="606" width="120" height="44" fill="{th["stand"]}"/>'
             f'<rect x="350" y="644" width="260" height="10" rx="5" fill="{th["stand"]}"/>'
             f'<rect x="40" y="10" width="880" height="600" rx="22" fill="{th["bezel"]}"/>'

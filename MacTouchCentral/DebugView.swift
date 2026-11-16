@@ -1,6 +1,6 @@
 //
 //  DebugView.swift
-//  TouchMyMac
+//  MacTouchCentral
 //
 //  Created by Sebastian Hueber on 11.02.23.
 //
@@ -11,13 +11,13 @@ import TouchUpCore
 
 struct DebugView: View {
     
-    @ObservedObject var model: TouchMyMac
+    @ObservedObject var model: MacTouchCentral
     
     let closeAction: ()->Void
     
     var pixelsPerMM: CGFloat
     
-    init(model: TouchMyMac, closeAction: @escaping ()->Void) {
+    init(model: MacTouchCentral, closeAction: @escaping ()->Void) {
         self.model = model
         self.pixelsPerMM = model.touchscreen()?.pixelsPerMM() ?? 30
         self.closeAction = closeAction
@@ -127,7 +127,7 @@ struct DebugView: View {
 
 struct DebugView_Previews: PreviewProvider {
     static var previews: some View {
-        DebugView(model: TouchMyMac(), closeAction: {})
+        DebugView(model: MacTouchCentral(), closeAction: {})
     }
 }
 

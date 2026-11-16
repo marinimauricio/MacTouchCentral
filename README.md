@@ -1,22 +1,22 @@
 <div align="center">
 
-<img src="TouchMyMac/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="TouchMyMac icon">
+<img src="MacTouchCentral/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="MacTouchCentral icon">
 
-# TouchMyMac
+# MacTouchCentral
 
 **Touch for every Mac, not just the new MacBook Pro.**
 
 **English** · [简体中文](README.zh-CN.md)
 
-[![Latest release](https://img.shields.io/github/v/release/marinimauricio/TouchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/TouchMyMac/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/marinimauricio/TouchMyMac/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/TouchMyMac/releases)
+[![Latest release](https://img.shields.io/github/v/release/marinimauricio/MacTouchCentral?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/MacTouchCentral/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/marinimauricio/MacTouchCentral/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/MacTouchCentral/releases)
 [![macOS 12+](https://img.shields.io/badge/macOS-12%2B-111111?style=flat-square&logo=apple&logoColor=white)](#-install)
 [![Apple silicon](https://img.shields.io/badge/Apple%20silicon-arm64-555555?style=flat-square)](#-install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/marinimauricio/TouchMyMac?style=flat-square&color=e3b341)](https://github.com/marinimauricio/TouchMyMac/stargazers)
-[![Last commit](https://img.shields.io/github/last-commit/marinimauricio/TouchMyMac?style=flat-square)](https://github.com/marinimauricio/TouchMyMac/commits/main)
+[![Stars](https://img.shields.io/github/stars/marinimauricio/MacTouchCentral?style=flat-square&color=e3b341)](https://github.com/marinimauricio/MacTouchCentral/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/marinimauricio/MacTouchCentral?style=flat-square)](https://github.com/marinimauricio/MacTouchCentral/commits/main)
 
-[**Download**](https://github.com/marinimauricio/TouchMyMac/releases/latest) · [Gestures](#-gestures) · [Install](#-install) · [FAQ](#-faq) · [Build](#-build-from-source)
+[**Download**](https://github.com/marinimauricio/MacTouchCentral/releases/latest) · [Gestures](#-gestures) · [Install](#-install) · [FAQ](#-faq) · [Build](#-build-from-source)
 
 </div>
 
@@ -27,21 +27,21 @@
 </picture>
 </p>
 
-TouchMyMac turns an external USB touchscreen into a real macOS input device. It reads raw HID touch data in user space and turns it into clicks, scrolling with inertia, dragging, multi-finger gestures, shortcut triggers and an on-screen keyboard, so the display feels less like a mouse emulator and more like an iPad.
+MacTouchCentral turns an external USB touchscreen into a real macOS input device. It reads raw HID touch data in user space and turns it into clicks, scrolling with inertia, dragging, multi-finger gestures, shortcut triggers and an on-screen keyboard, so the display feels less like a mouse emulator and more like an iPad.
 
 > **Project status for MK Technology MK S2300-G100:** single-touch operation is working on macOS, and 10-finger multitouch has been independently confirmed on Windows 11. The connected MK firmware currently exposes only one-contact reports to macOS, so native multitouch support for this exact device remains an open reverse-engineering task. See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [the MK test report](docs/MK-S2300-G100.md).
 
 ## ❤️ Support
 
-If TouchMyMac helps you, consider supporting its development. Your support helps fund device compatibility testing and continued macOS development.
+If MacTouchCentral helps you, consider supporting its development. Your support helps fund device compatibility testing and continued macOS development.
 
 [Donate via PayPal](https://paypal.me/mlsmarini)
 
 ## 🍎 Touch beyond the new MacBook Pro
 
-In October 2026 Apple announced the first Mac with a touchscreen: a MacBook Pro whose OLED display has touch built in. That touch belongs to the laptop's own screen. TouchMyMac brings the same kind of interaction to the screens and Macs that don't have it:
+In October 2026 Apple announced the first Mac with a touchscreen: a MacBook Pro whose OLED display has touch built in. That touch belongs to the laptop's own screen. MacTouchCentral brings the same kind of interaction to the screens and Macs that don't have it:
 
-| | MacBook Pro with touchscreen | TouchMyMac |
+| | MacBook Pro with touchscreen | MacTouchCentral |
 |---|---|---|
 | **Which screen** | Its built-in display | Any USB touchscreen: desktop monitors, portable displays, touch boards |
 | **Which Mac** | The new MacBook Pro | Any Mac on macOS 12 or later |
@@ -100,7 +100,7 @@ In October 2026 Apple announced the first Mac with a touchscreen: a MacBook Pro 
 
 ## 🌀 How scrolling works
 
-Synthesized scroll events are easy to get wrong, so TouchMyMac borrows from how phones and trackpads do it:
+Synthesized scroll events are easy to get wrong, so MacTouchCentral borrows from how phones and trackpads do it:
 
 - **One step per display frame.** Touch reports (often around 120 Hz) don't line up with display frames, so the finger's path is resampled at each frame instead of posting every report.
 - **Jitter filtering.** A One Euro filter smooths heavily at low speed, where touch noise is as large as the movement itself, and barely at high speed, where lag would be noticeable.
@@ -115,19 +115,19 @@ One finger is told apart the way Android's GestureDetector does it:
 
 - **A possible tap** until the finger moves 6 mm from where it landed (then it scrolls) or stays inside that for the Hold Duration, 0.4 s (then the mouse button goes down where it landed, so moving drags). Lifting a possible tap clicks where the finger landed, however long it took.
 - **The slop is wider than on a phone** (Android uses about 1.3 mm) because fingers flatten and roll as they land, which moved the contact point up to 3 mm on the panels we measured.
-- **Liftoffs come from the screen.** Many screens report the liftoff without coordinates; TouchMyMac still ends the touch right away, so taps are quick and fast double taps aren't merged into one.
+- **Liftoffs come from the screen.** Many screens report the liftoff without coordinates; MacTouchCentral still ends the touch right away, so taps are quick and fast double taps aren't merged into one.
 - **Clicks last 40 ms** between button down and up, like a real mouse, so controls show their pressed state and don't drop clicks.
 - **Two fingers** pinch once their distance changes by 8 mm, or scroll once the point between them moves 6 mm, whichever comes first. The zoom follows the ratio of finger distances, around the point between them.
 
 ## 📦 Install
 
-1. Download `TouchMyMac-x.y.z-macOS-unsigned.zip` from [**Releases**](https://github.com/marinimauricio/TouchMyMac/releases/latest), unzip it and move `TouchMyMac.app` to `/Applications`.
+1. Download `MacTouchCentral-x.y.z-macOS-unsigned.zip` from [**Releases**](https://github.com/marinimauricio/MacTouchCentral/releases/latest), unzip it and move `MacTouchCentral.app` to `/Applications`.
 2. Open the app. It isn't notarized, so macOS blocks the first launch: open **System Settings → Privacy & Security** and click **Open Anyway**.
-3. Grant **Accessibility** access when asked (System Settings → Privacy & Security → Accessibility). TouchMyMac needs it to post clicks, scrolling and key presses. Some touchscreens can only be read with **Input Monitoring** as well; TouchMyMac asks for it only when your screen needs it, and the menu bar menu then shows an Input Monitoring row.
-4. Connect your touchscreen. TouchMyMac maps touches to an external display, never the Mac's built-in one. With several external displays, check the **Touchscreen** row in the menu bar menu and pick the right monitor there.
+3. Grant **Accessibility** access when asked (System Settings → Privacy & Security → Accessibility). MacTouchCentral needs it to post clicks, scrolling and key presses. Some touchscreens can only be read with **Input Monitoring** as well; MacTouchCentral asks for it only when your screen needs it, and the menu bar menu then shows an Input Monitoring row.
+4. Connect your touchscreen. MacTouchCentral maps touches to an external display, never the Mac's built-in one. With several external displays, check the **Touchscreen** row in the menu bar menu and pick the right monitor there.
 
 > [!IMPORTANT]
-> Release builds are ad-hoc signed, so macOS treats every update as a new app. After updating, **remove TouchMyMac from the Accessibility list (and Input Monitoring, if you use it) and add it again**. Otherwise touches do nothing even though the switch looks on.
+> Release builds are ad-hoc signed, so macOS treats every update as a new app. After updating, **remove MacTouchCentral from the Accessibility list (and Input Monitoring, if you use it) and add it again**. Otherwise touches do nothing even though the switch looks on.
 
 > [!NOTE]
 > The release zip is built for Apple silicon. Intel Macs can [build from source](#-build-from-source), but that is untested.
@@ -138,7 +138,7 @@ Everything below lives in the Settings window (menu bar icon → Settings).
 
 | Setting | Default | What it does |
 |---|---|---|
-| Open at Login | Off | Start TouchMyMac when you log in (macOS 13 or later) |
+| Open at Login | Off | Start MacTouchCentral when you log in (macOS 13 or later) |
 | Drag Controls Directly | On | Sliders, scroll bars, dividers, title bars, window edges and windows in Mission Control follow your finger right away; elsewhere, dragging scrolls |
 | Small Target Assist | On | A finger a little beside a divider, a window edge or corner, or a window's close, minimize or zoom button still gets it; the top of a window drags it in apps without a reported title bar; Mission Control shows desktop close buttons under your finger |
 | Hold Duration | 0.4 s | How long a finger holds still before the mouse button goes down, so moving drags instead of scrolling |
@@ -157,7 +157,7 @@ Everything below lives in the Settings window (menu bar icon → Settings).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-  <img src="docs/images/settings-light.png" alt="The TouchMyMac settings window">
+  <img src="docs/images/settings-light.png" alt="The MacTouchCentral settings window">
 </picture>
 
 ## 🖥 Tested hardware
@@ -165,7 +165,7 @@ Everything below lives in the Settings window (menu bar icon → Settings).
 | Display | Status |
 |---|---|
 | LG Smart Monitor Swing | ✅ Tested by this fork |
-| ELAN panels, LG CreateBoard | 🧪 Worked with contributors' patches ([#2](https://github.com/marinimauricio/TouchMyMac/pull/2), [#3](https://github.com/marinimauricio/TouchMyMac/pull/3)); those fixes are in 1.5.0 but not confirmed there yet |
+| ELAN panels, LG CreateBoard | 🧪 Worked with contributors' patches ([#2](https://github.com/marinimauricio/MacTouchCentral/pull/2), [#3](https://github.com/marinimauricio/MacTouchCentral/pull/3)); those fixes are in 1.5.0 but not confirmed there yet |
 | Other USB HID touchscreens | ❔ Should work if they work on Windows without a driver; not validated yet |
 
 Have it working on another screen? Open an issue or PR to add it here.
@@ -175,7 +175,7 @@ Have it working on another screen? Open an issue or PR to add it here.
 <details>
 <summary><b>Touches do nothing after installing or updating</b></summary>
 
-Accessibility or Input Monitoring access is missing or stale. The menu bar menu then shows **Not Allowed** next to it; clicking it opens the right page. Remove TouchMyMac from that list in System Settings → Privacy & Security, add `/Applications/TouchMyMac.app` again, then quit and reopen the app.
+Accessibility or Input Monitoring access is missing or stale. The menu bar menu then shows **Not Allowed** next to it; clicking it opens the right page. Remove MacTouchCentral from that list in System Settings → Privacy & Security, add `/Applications/MacTouchCentral.app` again, then quit and reopen the app.
 </details>
 
 <details>
@@ -184,7 +184,7 @@ Accessibility or Input Monitoring access is missing or stale. The menu bar menu 
 The build isn't notarized. Use **Open Anyway** in System Settings → Privacy & Security. If macOS still refuses, clear the download quarantine flag:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/TouchMyMac.app
+xattr -dr com.apple.quarantine /Applications/MacTouchCentral.app
 ```
 </details>
 
@@ -199,25 +199,25 @@ Sliders, scroll bars, dividers, window title bars and window edges move as soon 
 <details>
 <summary><b>A slider or fader scrolls the page instead of moving</b></summary>
 
-TouchMyMac asks macOS Accessibility what is under your finger. Apps that draw their own controls, such as the faders in some audio apps, don't tell macOS that a control is there, so a drag there scrolls. Hold your finger still for a moment (the Hold Duration), then move it.
+MacTouchCentral asks macOS Accessibility what is under your finger. Apps that draw their own controls, such as the faders in some audio apps, don't tell macOS that a control is there, so a drag there scrolls. Hold your finger still for a moment (the Hold Duration), then move it.
 </details>
 
 <details>
 <summary><b>Touches land on the wrong display</b></summary>
 
-Open the menu bar menu, point to **Touchscreen** and pick the monitor (or use Settings → General → Assign Mouse Events to). TouchMyMac remembers the choice. Choose **Automatic** to let it pick again: it skips the Mac's built-in display, but with several external displays it can only guess.
+Open the menu bar menu, point to **Touchscreen** and pick the monitor (or use Settings → General → Assign Mouse Events to). MacTouchCentral remembers the choice. Choose **Automatic** to let it pick again: it skips the Mac's built-in display, but with several external displays it can only guess.
 </details>
 
 <details>
 <summary><b>Taps land in the wrong place and multi-finger gestures do nothing</b></summary>
 
-TouchMyMac isn't receiving touches, so macOS treats the screen as a plain mouse that maps onto whichever display it picks. If the menu bar menu shows **Input Monitoring: Not Allowed**, allow it: some screens can't be read without that permission, and Settings → Diagnostics then shows Touch Reports staying at 0.
+MacTouchCentral isn't receiving touches, so macOS treats the screen as a plain mouse that maps onto whichever display it picks. If the menu bar menu shows **Input Monitoring: Not Allowed**, allow it: some screens can't be read without that permission, and Settings → Diagnostics then shows Touch Reports staying at 0.
 </details>
 
 <details>
 <summary><b>Touches only move the pointer, on whichever display it's on</b></summary>
 
-Many touchscreens made for Windows start as a single-touch mouse until the computer switches them to multi-touch. TouchMyMac now does that when the screen connects, the way Windows does. If touches still only move the pointer, unplug the screen's USB cable and plug it back in. If that doesn't help, open an issue with the output of `hidutil list`.
+Many touchscreens made for Windows start as a single-touch mouse until the computer switches them to multi-touch. MacTouchCentral now does that when the screen connects, the way Windows does. If touches still only move the pointer, unplug the screen's USB cable and plug it back in. If that doesn't help, open an issue with the output of `hidutil list`.
 </details>
 
 <details>
@@ -235,9 +235,9 @@ Pick it under **Settings → General → Language** and click Restart Now. The d
 ## 🛠 Build from source
 
 ```bash
-git clone https://github.com/marinimauricio/TouchMyMac.git
-cd touchMyMac
-open TouchMyMac.xcodeproj
+git clone https://github.com/marinimauricio/MacTouchCentral.git
+cd MacTouchCentral
+open MacTouchCentral.xcodeproj
 ```
 
 Or build, install to `/Applications` and launch in one step:
@@ -251,7 +251,7 @@ Requires Xcode and macOS 12 or later.
 ## 🗂 Project structure
 
 ```
-TouchMyMac/   App: settings UI, menu bar item, diagnostics, floating keyboard
+MacTouchCentral/   App: settings UI, menu bar item, diagnostics, floating keyboard
 Core/         TouchUpCore: HID parsing, touch tracking, gestures, event posting
 scripts/      Build-and-install helper
 docs/         README images
@@ -271,7 +271,7 @@ docs/         README images
 
 ## 🙏 Acknowledgements
 
-TouchMyMac builds on the original TouchMyMac and TouchUpCore by [Sebastian Hueber](https://hci.rwth-aachen.de/touchup) (RWTH Aachen). This fork keeps that foundation and adds the gesture set, shortcut mappings, the floating keyboard, the settings UI and the scrolling work.
+MacTouchCentral currently retains the upstream TouchMyMac and TouchUpCore foundation by [Sebastian Hueber](https://hci.rwth-aachen.de/touchup) (RWTH Aachen). This repository is being renamed and prepared for a clean original implementation; the current code and its provenance are not being presented as entirely original. The current branch keeps that foundation and adds the gesture set, shortcut mappings, the floating keyboard, the settings UI and the scrolling work.
 
 ## 📄 License
 
@@ -279,9 +279,9 @@ TouchMyMac builds on the original TouchMyMac and TouchUpCore by [Sebastian Huebe
 
 ## ⭐ Star history
 
-<a href="https://star-history.com/#marinimauricio/TouchMyMac&Date">
+<a href="https://star-history.com/#marinimauricio/MacTouchCentral&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date&theme=dark">
-    <img src="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date" alt="Star history chart" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/MacTouchCentral&type=Date&theme=dark">
+    <img src="https://api.star-history.com/svg?repos=marinimauricio/MacTouchCentral&type=Date" alt="Star history chart" width="600">
   </picture>
 </a>

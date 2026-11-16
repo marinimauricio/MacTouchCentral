@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  TouchMyMac
+//  MacTouchCentral
 //
 //  Created by Sebastian Hueber on 03.02.23.
 //
@@ -46,7 +46,7 @@ private enum SettingsPane: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
 
-    @ObservedObject var model: TouchMyMac
+    @ObservedObject var model: MacTouchCentral
     @State private var selectedPane: SettingsPane = .general
 
     static let diagnosticsDateFormatter: DateFormatter = {
@@ -141,7 +141,7 @@ struct SettingsView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("TouchMyMac")
+                Text("MacTouchCentral")
                     .font(.title3.weight(.semibold))
                 Text("Preferences")
                     .font(.subheadline)
@@ -268,7 +268,7 @@ struct SettingsView: View {
 
             SettingsGroup(title: "Language") {
                 VStack(alignment: .leading, spacing: 8) {
-                    SettingText(labels: (L("App Language"), L("The language of TouchMyMac's menus and settings.")))
+                SettingText(labels: (L("App Language"), L("The language of MacTouchCentral's menus and settings.")))
                     Picker("", selection: languageBinding) {
                         ForEach(AppLanguage.allCases) { language in
                             Text(language.title).tag(language)
@@ -279,7 +279,7 @@ struct SettingsView: View {
 
                     if model.languageNeedsRestart {
                         HStack(spacing: 10) {
-                            Text(L("Restart TouchMyMac to use the new language."))
+                            Text(L("Restart MacTouchCentral to use the new language."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Button(L("Restart Now")) {
@@ -513,7 +513,7 @@ struct SettingsView: View {
     private var accessBanner: some View {
         permissionBanner(
             title: L("Accessibility Access Required"),
-            message: L("TouchMyMac needs Accessibility access before macOS will accept the injected mouse and keyboard events."),
+            message: L("MacTouchCentral needs Accessibility access before macOS will accept the injected mouse and keyboard events."),
             action: model.grantAccessibilityAccess
         )
     }
@@ -521,7 +521,7 @@ struct SettingsView: View {
     private var inputMonitoringBanner: some View {
         permissionBanner(
             title: L("Input Monitoring Access Required"),
-            message: L("macOS won't let TouchMyMac read this touchscreen without Input Monitoring. Turn it on in System Settings → Privacy & Security → Input Monitoring."),
+            message: L("macOS won't let MacTouchCentral read this touchscreen without Input Monitoring. Turn it on in System Settings → Privacy & Security → Input Monitoring."),
             action: model.grantInputMonitoringAccess
         )
     }
@@ -661,7 +661,7 @@ struct SettingsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 if let versionString = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                    Text("TouchMyMac v\(versionString)")
+                    Text("MacTouchCentral v\(versionString)")
                         .font(.headline)
                 }
 

@@ -1,4 +1,4 @@
-/* 简体中文。键是英文原文，见 L() in TouchMyMac.swift。 */
+/* 简体中文。键是英文原文，见 L() in MacTouchCentral.swift。 */
 
 /* MARK: - Menu bar menu */
 "Control Mouse with Touch" = "用触摸控制鼠标";
@@ -11,12 +11,12 @@
 "Needs Input Monitoring permission" = "需要输入监控权限";
 "Accessibility: Allowed" = "辅助功能：已允许";
 "Accessibility: Not Allowed – Open Settings…" = "辅助功能：未允许 – 打开设置…";
-"TouchMyMac may control the mouse and keyboard." = "TouchMyMac 可以控制鼠标和键盘。";
-"Turn on TouchMyMac in Privacy & Security → Accessibility. After an update, remove it from the list and add it again." = "在“隐私与安全性 → 辅助功能”里打开 TouchMyMac。更新之后，请把它从列表里删掉再重新添加。";
+"MacTouchCentral may control the mouse and keyboard." = "MacTouchCentral 可以控制鼠标和键盘。";
+"Turn on MacTouchCentral in Privacy & Security → Accessibility. After an update, remove it from the list and add it again." = "在“隐私与安全性 → 辅助功能”里打开 MacTouchCentral。更新之后，请把它从列表里删掉再重新添加。";
 "Input Monitoring: Allowed" = "输入监控：已允许";
 "Input Monitoring: Not Allowed – Open Settings…" = "输入监控：未允许 – 打开设置…";
-"TouchMyMac may read the touchscreen's touch data." = "TouchMyMac 可以读取触摸屏的触摸数据。";
-"Turn on TouchMyMac in Privacy & Security → Input Monitoring. macOS won't let the app read this touchscreen without it." = "在“隐私与安全性 → 输入监控”里打开 TouchMyMac。没有这项权限，macOS 不允许 App 读取这块触摸屏。";
+"MacTouchCentral may read the touchscreen's touch data." = "MacTouchCentral 可以读取触摸屏的触摸数据。";
+"Turn on MacTouchCentral in Privacy & Security → Input Monitoring. macOS won't let the app read this touchscreen without it." = "在“隐私与安全性 → 输入监控”里打开 MacTouchCentral。没有这项权限，macOS 不允许 App 读取这块触摸屏。";
 "Touchscreen: %@" = "触摸屏：%@";
 "Touchscreen: Not Connected" = "触摸屏：未连接";
 "Touchscreen: No Display Found" = "触摸屏：找不到显示器";
@@ -30,7 +30,7 @@
 "%@ (This Mac)" = "%@（本机）";
 
 /* MARK: - Settings window */
-"TouchMyMac Settings" = "TouchMyMac 设置";
+"MacTouchCentral Settings" = "MacTouchCentral 设置";
 "Preferences" = "偏好设置";
 "General" = "通用";
 "Gestures" = "手势";
@@ -55,9 +55,9 @@
 "Live Diagnostics" = "实时诊断";
 
 "Accessibility Access Required" = "需要辅助功能权限";
-"TouchMyMac needs Accessibility access before macOS will accept the injected mouse and keyboard events." = "TouchMyMac 需要辅助功能权限，macOS 才会接受它发送的鼠标和键盘事件。";
+"MacTouchCentral needs Accessibility access before macOS will accept the injected mouse and keyboard events." = "MacTouchCentral 需要辅助功能权限，macOS 才会接受它发送的鼠标和键盘事件。";
 "Input Monitoring Access Required" = "需要输入监控权限";
-"macOS won't let TouchMyMac read this touchscreen without Input Monitoring. Turn it on in System Settings → Privacy & Security → Input Monitoring." = "没有输入监控权限，macOS 不允许 TouchMyMac 读取这块触摸屏。请在“系统设置 → 隐私与安全性 → 输入监控”里打开它。";
+"macOS won't let MacTouchCentral read this touchscreen without Input Monitoring. Turn it on in System Settings → Privacy & Security → Input Monitoring." = "没有输入监控权限，macOS 不允许 MacTouchCentral 读取这块触摸屏。请在“系统设置 → 隐私与安全性 → 输入监控”里打开它。";
 "Grant Access" = "授予权限";
 
 "No connected touchscreen detected yet." = "还没有检测到已连接的触摸屏。";
@@ -77,15 +77,15 @@
 "Connected, no display" = "已连接，没有显示器";
 "Not connected" = "未连接";
 
-"Needs macOS 13 or later. Add TouchMyMac in System Settings → Users & Groups → Login Items instead." = "需要 macOS 13 或更高版本。请改为在“系统设置 → 用户与群组 → 登录项”里添加 TouchMyMac。";
-"Turned off in System Settings → General → Login Items. Allow TouchMyMac there." = "已在“系统设置 → 通用 → 登录项”里关闭。请在那里允许 TouchMyMac。";
+"Needs macOS 13 or later. Add MacTouchCentral in System Settings → Users & Groups → Login Items instead." = "需要 macOS 13 或更高版本。请改为在“系统设置 → 用户与群组 → 登录项”里添加 MacTouchCentral。";
+"Turned off in System Settings → General → Login Items. Allow MacTouchCentral there." = "已在“系统设置 → 通用 → 登录项”里关闭。请在那里允许 MacTouchCentral。";
 "Couldn't change the login item: %@" = "无法更改登录项：%@";
 "Touch input for macOS" = "为 macOS 带来触摸输入";
 
 /* MARK: - Setting titles and descriptions */
 "Turns the driver on or off." = "打开或关闭驱动。";
 "Open at Login" = "登录时打开";
-"Starts TouchMyMac when you log in, so the touchscreen works right away." = "登录时启动 TouchMyMac，触摸屏开机就能用。";
+"Starts MacTouchCentral when you log in, so the touchscreen works right away." = "登录时启动 MacTouchCentral，触摸屏开机就能用。";
 "Assign Mouse Events to" = "把鼠标事件分配给";
 "Specifies which screen should receive the touch events." = "指定哪块屏幕接收触摸事件。";
 "Secondary Click" = "辅助点按";
@@ -164,7 +164,7 @@
 /* MARK: - Language */
 "Language" = "语言";
 "App Language" = "App 语言";
-"The language of TouchMyMac's menus and settings." = "TouchMyMac 菜单和设置使用的语言。";
+"The language of MacTouchCentral's menus and settings." = "MacTouchCentral 菜单和设置使用的语言。";
 "System Default" = "跟随系统";
-"Restart TouchMyMac to use the new language." = "重新启动 TouchMyMac 后生效。";
+"Restart MacTouchCentral to use the new language." = "重新启动 MacTouchCentral 后生效。";
 "Restart Now" = "立即重新启动";

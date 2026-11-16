@@ -1,22 +1,22 @@
 <div align="center">
 
-<img src="TouchMyMac/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="TouchMyMac 图标">
+<img src="MacTouchCentral/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png" width="128" alt="MacTouchCentral 图标">
 
-# TouchMyMac
+# MacTouchCentral
 
 **让每一台 Mac 都能触控，不只是新款 MacBook Pro。**
 
 [English](README.md) · **简体中文**
 
-[![最新版本](https://img.shields.io/github/v/release/marinimauricio/TouchMyMac?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/TouchMyMac/releases/latest)
-[![下载量](https://img.shields.io/github/downloads/marinimauricio/TouchMyMac/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/TouchMyMac/releases)
+[![最新版本](https://img.shields.io/github/v/release/marinimauricio/MacTouchCentral?style=flat-square&label=release&color=2ea043)](https://github.com/marinimauricio/MacTouchCentral/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/marinimauricio/MacTouchCentral/total?style=flat-square&color=0969da)](https://github.com/marinimauricio/MacTouchCentral/releases)
 [![macOS 12+](https://img.shields.io/badge/macOS-12%2B-111111?style=flat-square&logo=apple&logoColor=white)](#-安装)
 [![Apple 芯片](https://img.shields.io/badge/Apple%20silicon-arm64-555555?style=flat-square)](#-安装)
 [![许可证: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/marinimauricio/TouchMyMac?style=flat-square&color=e3b341)](https://github.com/marinimauricio/TouchMyMac/stargazers)
-[![最近提交](https://img.shields.io/github/last-commit/marinimauricio/TouchMyMac?style=flat-square)](https://github.com/marinimauricio/TouchMyMac/commits/main)
+[![Stars](https://img.shields.io/github/stars/marinimauricio/MacTouchCentral?style=flat-square&color=e3b341)](https://github.com/marinimauricio/MacTouchCentral/stargazers)
+[![最近提交](https://img.shields.io/github/last-commit/marinimauricio/MacTouchCentral?style=flat-square)](https://github.com/marinimauricio/MacTouchCentral/commits/main)
 
-[**下载**](https://github.com/marinimauricio/TouchMyMac/releases/latest) · [手势](#-手势) · [安装](#-安装) · [常见问题](#-常见问题) · [从源码构建](#-从源码构建)
+[**下载**](https://github.com/marinimauricio/MacTouchCentral/releases/latest) · [手势](#-手势) · [安装](#-安装) · [常见问题](#-常见问题) · [从源码构建](#-从源码构建)
 
 </div>
 
@@ -27,13 +27,13 @@
 </picture>
 </p>
 
-TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备。它在用户态直接读取 HID 触摸数据，转换成点击、带惯性的滚动、拖拽、多指手势、快捷键和屏幕键盘，用起来不像在用鼠标模拟，而更接近 iPad。
+MacTouchCentral 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备。它在用户态直接读取 HID 触摸数据，转换成点击、带惯性的滚动、拖拽、多指手势、快捷键和屏幕键盘，用起来不像在用鼠标模拟，而更接近 iPad。
 
 ## 🍎 不只是新款 MacBook Pro 才能触控
 
-2026 年 10 月，苹果发布了第一台带触摸屏的 Mac：屏幕内置触控的 OLED MacBook Pro。它的触控只属于这台笔记本自己的屏幕。TouchMyMac 把类似的交互带给其他屏幕和其他 Mac：
+2026 年 10 月，苹果发布了第一台带触摸屏的 Mac：屏幕内置触控的 OLED MacBook Pro。它的触控只属于这台笔记本自己的屏幕。MacTouchCentral 把类似的交互带给其他屏幕和其他 Mac：
 
-| | 触摸屏 MacBook Pro | TouchMyMac |
+| | 触摸屏 MacBook Pro | MacTouchCentral |
 |---|---|---|
 | **哪块屏幕** | 笔记本自带的屏幕 | 任何 USB 触摸屏：桌面显示器、便携屏、触控白板 |
 | **哪台 Mac** | 新款 MacBook Pro | 任何 macOS 12 或更高版本的 Mac |
@@ -92,7 +92,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 
 ## 🌀 滚动是怎么做的
 
-合成出来的滚动事件很容易让人觉得卡、不跟手，所以 TouchMyMac 参考了手机和触控板的做法：
+合成出来的滚动事件很容易让人觉得卡、不跟手，所以 MacTouchCentral 参考了手机和触控板的做法：
 
 - **每帧只滚一步。** 触摸报告（常见的是 120Hz 左右）和屏幕帧的节奏对不上，所以按每一帧对手指轨迹重新采样，而不是来一个报告发一次。
 - **过滤抖动。** 用 One Euro 滤波：慢速时强力平滑，因为这时触摸噪声和真实位移差不多大；快速时几乎不平滑，避免延迟。
@@ -107,19 +107,19 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 
 - **先算作"可能是轻点"**：手指离开落点超过 6 毫米就变成滚动；在 6 毫米以内停够 Hold Duration（0.4 秒）就在落点按下鼠标键，之后移动即拖拽。抬手时如果还是"可能是轻点"，就在手指落下的位置点击，不管按了多久。
 - **阈值比手机上大**（Android 大约 1.3 毫米），因为手指落下时会压扁、滚动，我们实测触点会因此漂移最多 3 毫米。
-- **抬手以屏幕报告为准。** 很多屏幕报告抬手时不带坐标，TouchMyMac 也会立刻结束这次触摸，所以轻点响应快，快速双击不会被并成一次。
+- **抬手以屏幕报告为准。** 很多屏幕报告抬手时不带坐标，MacTouchCentral 也会立刻结束这次触摸，所以轻点响应快，快速双击不会被并成一次。
 - **每次点击按住 40 毫秒**再松开，和真实鼠标一样，控件能显示按下的样子，也不会漏点。
 - **双指**：两指距离先变化 8 毫米就是捏合，两指中点先移动 6 毫米就是滚动。缩放跟随两指距离的比例，以两指中点为中心。
 
 ## 📦 安装
 
-1. 从 [**Releases**](https://github.com/marinimauricio/TouchMyMac/releases/latest) 下载 `TouchMyMac-x.y.z-macOS-unsigned.zip`，解压后把 `TouchMyMac.app` 拖到 `/Applications`。
+1. 从 [**Releases**](https://github.com/marinimauricio/MacTouchCentral/releases/latest) 下载 `MacTouchCentral-x.y.z-macOS-unsigned.zip`，解压后把 `MacTouchCentral.app` 拖到 `/Applications`。
 2. 打开 App。它没有经过公证，第一次打开会被 macOS 拦下：到 **系统设置 → 隐私与安全性**，点 **仍要打开**。
-3. 按提示授予 **辅助功能** 权限（系统设置 → 隐私与安全性 → 辅助功能）。TouchMyMac 需要它来发送点击、滚动和按键。有些触摸屏还需要 **输入监控** 权限才能读取；只有你的屏幕需要时 TouchMyMac 才会申请，这时菜单栏菜单里会多出一行 Input Monitoring。
-4. 连接触摸屏。TouchMyMac 会把触摸对应到外接显示器，不会选 Mac 自带的屏幕。如果接了多块外接显示器，看一下菜单栏菜单里的 **Touchscreen** 一项，在那里选中触摸屏。
+3. 按提示授予 **辅助功能** 权限（系统设置 → 隐私与安全性 → 辅助功能）。MacTouchCentral 需要它来发送点击、滚动和按键。有些触摸屏还需要 **输入监控** 权限才能读取；只有你的屏幕需要时 MacTouchCentral 才会申请，这时菜单栏菜单里会多出一行 Input Monitoring。
+4. 连接触摸屏。MacTouchCentral 会把触摸对应到外接显示器，不会选 Mac 自带的屏幕。如果接了多块外接显示器，看一下菜单栏菜单里的 **Touchscreen** 一项，在那里选中触摸屏。
 
 > [!IMPORTANT]
-> 发布的版本是 ad-hoc 签名，macOS 会把每次更新都当成一个新 App。更新之后，请**在辅助功能列表（如果用到了，还有输入监控列表）里删掉 TouchMyMac 再重新加回来**，否则即使开关显示为打开，触摸也不会有反应。
+> 发布的版本是 ad-hoc 签名，macOS 会把每次更新都当成一个新 App。更新之后，请**在辅助功能列表（如果用到了，还有输入监控列表）里删掉 MacTouchCentral 再重新加回来**，否则即使开关显示为打开，触摸也不会有反应。
 
 > [!NOTE]
 > 发布的 zip 是为 Apple 芯片构建的。Intel Mac 可以[从源码构建](#-从源码构建)，但没有测试过。
@@ -130,7 +130,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 
 | 设置项 | 默认值 | 作用 |
 |---|---|---|
-| Open at Login | 关 | 登录时自动启动 TouchMyMac（需要 macOS 13 或更高版本） |
+| Open at Login | 关 | 登录时自动启动 MacTouchCentral（需要 macOS 13 或更高版本） |
 | Drag Controls Directly | 开 | 滑块、滚动条、分割线、标题栏、窗口边缘和调度中心里的窗口会直接跟着手指走；其他地方拖动仍是滚动 |
 | Small Target Assist | 开 | 手指落在分割线、窗口边缘或角落、窗口的关闭/最小化/缩放按钮旁边一点也能点中；不报告标题栏的应用里拖动窗口顶部可以移动窗口；调度中心里手指下的桌面会显示关闭按钮 |
 | Hold Duration | 0.4 秒 | 手指按住不动多久之后按下鼠标键，之后移动就是拖拽而不是滚动 |
@@ -149,7 +149,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-  <img src="docs/images/settings-light.png" alt="TouchMyMac 设置窗口">
+  <img src="docs/images/settings-light.png" alt="MacTouchCentral 设置窗口">
 </picture>
 
 ## 🖥 已测试的硬件
@@ -157,7 +157,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 | 显示器 | 状态 |
 |---|---|
 | LG Smart Monitor Swing | ✅ 本分支实测可用 |
-| ELAN 触摸屏、LG CreateBoard | 🧪 贡献者用自己的补丁跑通过（[#2](https://github.com/marinimauricio/TouchMyMac/pull/2)、[#3](https://github.com/marinimauricio/TouchMyMac/pull/3)）；这些修复已进入 1.5.0，但还没在 1.5.0 上确认 |
+| ELAN 触摸屏、LG CreateBoard | 🧪 贡献者用自己的补丁跑通过（[#2](https://github.com/marinimauricio/MacTouchCentral/pull/2)、[#3](https://github.com/marinimauricio/MacTouchCentral/pull/3)）；这些修复已进入 1.5.0，但还没在 1.5.0 上确认 |
 | 其他 USB HID 触摸屏 | ❔ 如果在 Windows 上免驱可用，这里大概率也能用；尚未验证 |
 
 在别的屏幕上用起来了？欢迎提 issue 或 PR 把它加到这里。
@@ -167,7 +167,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 <details>
 <summary><b>安装或更新之后，触摸没有任何反应</b></summary>
 
-辅助功能或输入监控权限缺失或已经失效，这时菜单栏菜单里对应的一项会显示 **Not Allowed**，点它就能打开对应的设置页。在 系统设置 → 隐私与安全性 里对应的列表中删掉 TouchMyMac，重新添加 `/Applications/TouchMyMac.app`，然后退出并重新打开 App。
+辅助功能或输入监控权限缺失或已经失效，这时菜单栏菜单里对应的一项会显示 **Not Allowed**，点它就能打开对应的设置页。在 系统设置 → 隐私与安全性 里对应的列表中删掉 MacTouchCentral，重新添加 `/Applications/MacTouchCentral.app`，然后退出并重新打开 App。
 </details>
 
 <details>
@@ -176,7 +176,7 @@ TouchMyMac 能把一块外接的 USB 触摸屏变成真正的 macOS 输入设备
 这个版本没有经过公证。到 系统设置 → 隐私与安全性 点 **仍要打开**。如果还是打不开，清除下载时附加的隔离标记：
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/TouchMyMac.app
+xattr -dr com.apple.quarantine /Applications/MacTouchCentral.app
 ```
 </details>
 
@@ -191,25 +191,25 @@ xattr -dr com.apple.quarantine /Applications/TouchMyMac.app
 <details>
 <summary><b>拖滑块或推子时，页面滚动了，滑块没动</b></summary>
 
-TouchMyMac 通过 macOS 的辅助功能来判断手指下面是什么。有些 App 的控件是自己画的，比如一些音频软件里的推子，它们没有告诉 macOS 那里有个控件，所以在上面拖动会变成滚动。先按住不动一会儿（Hold Duration），再移动手指即可。
+MacTouchCentral 通过 macOS 的辅助功能来判断手指下面是什么。有些 App 的控件是自己画的，比如一些音频软件里的推子，它们没有告诉 macOS 那里有个控件，所以在上面拖动会变成滚动。先按住不动一会儿（Hold Duration），再移动手指即可。
 </details>
 
 <details>
 <summary><b>触摸落到了别的显示器上</b></summary>
 
-打开菜单栏菜单，在 **Touchscreen** 的子菜单里选中触摸屏（也可以在 Settings → General → Assign Mouse Events to 里选），TouchMyMac 会记住这个选择。选 **Automatic** 可以让它重新自动选择：它会跳过 Mac 自带的屏幕，但接了多块外接显示器时只能靠猜。
+打开菜单栏菜单，在 **Touchscreen** 的子菜单里选中触摸屏（也可以在 Settings → General → Assign Mouse Events to 里选），MacTouchCentral 会记住这个选择。选 **Automatic** 可以让它重新自动选择：它会跳过 Mac 自带的屏幕，但接了多块外接显示器时只能靠猜。
 </details>
 
 <details>
 <summary><b>点哪儿都不准，多指手势也没反应</b></summary>
 
-这说明 TouchMyMac 没有收到触摸数据，macOS 只是把屏幕当成普通鼠标，映射到它自己选的那块显示器上。如果菜单栏菜单里显示 **Input Monitoring: Not Allowed**，请打开这项权限：有些屏幕没有它就读不到数据，Settings → Diagnostics 里的 Touch Reports 会一直是 0。
+这说明 MacTouchCentral 没有收到触摸数据，macOS 只是把屏幕当成普通鼠标，映射到它自己选的那块显示器上。如果菜单栏菜单里显示 **Input Monitoring: Not Allowed**，请打开这项权限：有些屏幕没有它就读不到数据，Settings → Diagnostics 里的 Touch Reports 会一直是 0。
 </details>
 
 <details>
 <summary><b>触摸只会移动指针，而且是在指针当前所在的屏幕上</b></summary>
 
-很多为 Windows 设计的触摸屏开机时是单点鼠标模式，要电脑切换后才会发送多点触摸数据。TouchMyMac 现在会像 Windows 一样，在触摸屏连接时完成切换。如果触摸还是只会移动指针，把触摸屏的 USB 线拔掉重插；还不行的话，请附上 `hidutil list` 的输出提个 issue。
+很多为 Windows 设计的触摸屏开机时是单点鼠标模式，要电脑切换后才会发送多点触摸数据。MacTouchCentral 现在会像 Windows 一样，在触摸屏连接时完成切换。如果触摸还是只会移动指针，把触摸屏的 USB 线拔掉重插；还不行的话，请附上 `hidutil list` 的输出提个 issue。
 </details>
 
 <details>
@@ -227,9 +227,9 @@ TouchMyMac 通过 macOS 的辅助功能来判断手指下面是什么。有些 A
 ## 🛠 从源码构建
 
 ```bash
-git clone https://github.com/marinimauricio/TouchMyMac.git
-cd touchMyMac
-open TouchMyMac.xcodeproj
+git clone https://github.com/marinimauricio/MacTouchCentral.git
+cd MacTouchCentral
+open MacTouchCentral.xcodeproj
 ```
 
 也可以一步完成构建、安装到 `/Applications` 并启动：
@@ -243,7 +243,7 @@ scripts/build_install_run.sh
 ## 🗂 项目结构
 
 ```
-TouchMyMac/   App：设置界面、菜单栏图标、诊断工具、浮动键盘
+MacTouchCentral/   App：设置界面、菜单栏图标、诊断工具、浮动键盘
 Core/         TouchUpCore：HID 解析、触点跟踪、手势识别、事件发送
 scripts/      构建并安装的脚本
 docs/         README 用到的图片
@@ -263,7 +263,7 @@ docs/         README 用到的图片
 
 ## 🙏 致谢
 
-TouchMyMac 基于 [Sebastian Hueber](https://hci.rwth-aachen.de/touchup)（亚琛工业大学）原版的 TouchMyMac 和 TouchUpCore。本分支沿用了它的基础，并加入了手势集、快捷键映射、浮动键盘、设置界面和滚动方面的改进。
+MacTouchCentral 目前仍保留 [Sebastian Hueber](https://hci.rwth-aachen.de/touchup)（亚琛工业大学）提供的上游 TouchMyMac 和 TouchUpCore 基础。本仓库正在更名并准备后续的全新原创实现；当前代码及其来源不会被表述为完全原创。本分支在此基础上加入了手势集、快捷键映射、浮动键盘、设置界面和滚动方面的改进。
 
 ## 📄 许可证
 
@@ -271,9 +271,9 @@ TouchMyMac 基于 [Sebastian Hueber](https://hci.rwth-aachen.de/touchup)（亚�
 
 ## ⭐ Star 趋势
 
-<a href="https://star-history.com/#marinimauricio/TouchMyMac&Date">
+<a href="https://star-history.com/#marinimauricio/MacTouchCentral&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date&theme=dark">
-    <img src="https://api.star-history.com/svg?repos=marinimauricio/TouchMyMac&type=Date" alt="Star 趋势图" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=marinimauricio/MacTouchCentral&type=Date&theme=dark">
+    <img src="https://api.star-history.com/svg?repos=marinimauricio/MacTouchCentral&type=Date" alt="Star 趋势图" width="600">
   </picture>
 </a>

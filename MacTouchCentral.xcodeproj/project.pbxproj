@@ -28,7 +28,7 @@
 		7052F456298D30D10066014F /* HIDInterpreter.c in Sources */ = {isa = PBXBuildFile; fileRef = 7052F454298D30D10066014F /* HIDInterpreter.c */; };
 		7052F459298D3A450066014F /* TUCTouchInputManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 7052F457298D3A450066014F /* TUCTouchInputManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7052F45A298D3A450066014F /* TUCTouchInputManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 7052F458298D3A450066014F /* TUCTouchInputManager.m */; };
-		70C8D697298D5D2B00CFA6D4 /* TouchMyMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C8D696298D5D2B00CFA6D4 /* TouchMyMac.swift */; };
+		70C8D697298D5D2B00CFA6D4 /* MacTouchCentral.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C8D696298D5D2B00CFA6D4 /* MacTouchCentral.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,13 +64,13 @@
 		704B2C6829978B2900A1DE4D /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		704B2C6A2997B5A000A1DE4D /* TUCCursorUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUCCursorUtilities.h; sourceTree = "<group>"; };
 		704B2C6B2997B5A000A1DE4D /* TUCCursorUtilities.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUCCursorUtilities.m; sourceTree = "<group>"; };
-		7052F42C298D2D280066014F /* TouchMyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TouchMyMac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7052F42C298D2D280066014F /* MacTouchCentral.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MacTouchCentral.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7052F42F298D2D280066014F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7052F431298D2D280066014F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7052F434298D2D280066014F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		7052F4A2298D2D280066014F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		7052F4A3298D2D280066014F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
-		7052F436298D2D280066014F /* TouchMyMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TouchMyMac.entitlements; sourceTree = "<group>"; };
+		7052F436298D2D280066014F /* MacTouchCentral.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacTouchCentral.entitlements; sourceTree = "<group>"; };
 		7052F441298D2DAB0066014F /* TouchUpCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TouchUpCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7052F443298D2DAB0066014F /* TouchUpCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TouchUpCore.h; sourceTree = "<group>"; };
 		7052F44D298D2E6A0066014F /* TUCTouchDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUCTouchDelegate.h; sourceTree = "<group>"; };
@@ -79,7 +79,7 @@
 		7052F454298D30D10066014F /* HIDInterpreter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HIDInterpreter.c; sourceTree = "<group>"; };
 		7052F457298D3A450066014F /* TUCTouchInputManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TUCTouchInputManager.h; sourceTree = "<group>"; };
 		7052F458298D3A450066014F /* TUCTouchInputManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TUCTouchInputManager.m; sourceTree = "<group>"; };
-		70C8D696298D5D2B00CFA6D4 /* TouchMyMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchMyMac.swift; sourceTree = "<group>"; };
+		70C8D696298D5D2B00CFA6D4 /* MacTouchCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacTouchCentral.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,7 +104,7 @@
 		7052F423298D2D280066014F = {
 			isa = PBXGroup;
 			children = (
-				7052F42E298D2D280066014F /* TouchMyMac */,
+				7052F42E298D2D280066014F /* MacTouchCentral */,
 				7052F442298D2DAB0066014F /* TouchUpCore */,
 				7052F42D298D2D280066014F /* Products */,
 			);
@@ -113,25 +113,25 @@
 		7052F42D298D2D280066014F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7052F42C298D2D280066014F /* TouchMyMac.app */,
+				7052F42C298D2D280066014F /* MacTouchCentral.app */,
 				7052F441298D2DAB0066014F /* TouchUpCore.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		7052F42E298D2D280066014F /* TouchMyMac */ = {
+		7052F42E298D2D280066014F /* MacTouchCentral */ = {
 			isa = PBXGroup;
 			children = (
-				70C8D696298D5D2B00CFA6D4 /* TouchMyMac.swift */,
+				70C8D696298D5D2B00CFA6D4 /* MacTouchCentral.swift */,
 				7052F42F298D2D280066014F /* AppDelegate.swift */,
 				702F2BA9298D57BD00415DEA /* SettingsView.swift */,
 				704B2C6829978B2900A1DE4D /* DebugView.swift */,
 				7052F431298D2D280066014F /* Assets.xcassets */,
 				7052F433298D2D280066014F /* MainMenu.xib */,
 				7052F4A1298D2D280066014F /* Localizable.strings */,
-				7052F436298D2D280066014F /* TouchMyMac.entitlements */,
+				7052F436298D2D280066014F /* MacTouchCentral.entitlements */,
 			);
-			path = "TouchMyMac";
+			path = "MacTouchCentral";
 			sourceTree = "<group>";
 		};
 		7052F442298D2DAB0066014F /* TouchUpCore */ = {
@@ -175,9 +175,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		7052F42B298D2D280066014F /* TouchMyMac */ = {
+		7052F42B298D2D280066014F /* MacTouchCentral */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7052F439298D2D280066014F /* Build configuration list for PBXNativeTarget "TouchMyMac" */;
+			buildConfigurationList = 7052F439298D2D280066014F /* Build configuration list for PBXNativeTarget "MacTouchCentral" */;
 			buildPhases = (
 				7052F428298D2D280066014F /* Sources */,
 				7052F429298D2D280066014F /* Frameworks */,
@@ -189,9 +189,9 @@
 			dependencies = (
 				7052F446298D2DAB0066014F /* PBXTargetDependency */,
 			);
-			name = "TouchMyMac";
-			productName = "TouchMyMac";
-			productReference = 7052F42C298D2D280066014F /* TouchMyMac.app */;
+			name = "MacTouchCentral";
+			productName = "MacTouchCentral";
+			productReference = 7052F42C298D2D280066014F /* MacTouchCentral.app */;
 			productType = "com.apple.product-type.application";
 		};
 		7052F440298D2DAB0066014F /* TouchUpCore */ = {
@@ -230,7 +230,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7052F427298D2D280066014F /* Build configuration list for PBXProject "TouchMyMac" */;
+			buildConfigurationList = 7052F427298D2D280066014F /* Build configuration list for PBXProject "MacTouchCentral" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -244,7 +244,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7052F42B298D2D280066014F /* TouchMyMac */,
+				7052F42B298D2D280066014F /* MacTouchCentral */,
 				7052F440298D2DAB0066014F /* TouchUpCore */,
 			);
 		};
@@ -278,7 +278,7 @@
 				704B2C6929978B2900A1DE4D /* DebugView.swift in Sources */,
 				7052F430298D2D280066014F /* AppDelegate.swift in Sources */,
 				702F2BAA298D57BD00415DEA /* SettingsView.swift in Sources */,
-				70C8D697298D5D2B00CFA6D4 /* TouchMyMac.swift in Sources */,
+				70C8D697298D5D2B00CFA6D4 /* MacTouchCentral.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -443,7 +443,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "TouchMyMac/TouchMyMac.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "MacTouchCentral/MacTouchCentral.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 15;
@@ -460,7 +460,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 2.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.schafe.TouchMyMac";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.marinimauricio.MacTouchCentral";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -472,7 +472,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "TouchMyMac/TouchMyMac.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "MacTouchCentral/MacTouchCentral.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 15;
@@ -489,7 +489,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 2.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "de.schafe.TouchMyMac";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.marinimauricio.MacTouchCentral";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -559,7 +559,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7052F427298D2D280066014F /* Build configuration list for PBXProject "TouchMyMac" */ = {
+		7052F427298D2D280066014F /* Build configuration list for PBXProject "MacTouchCentral" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7052F437298D2D280066014F /* Debug */,
@@ -568,7 +568,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7052F439298D2D280066014F /* Build configuration list for PBXNativeTarget "TouchMyMac" */ = {
+		7052F439298D2D280066014F /* Build configuration list for PBXNativeTarget "MacTouchCentral" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7052F43A298D2D280066014F /* Debug */,

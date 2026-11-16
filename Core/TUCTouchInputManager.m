@@ -756,7 +756,7 @@ static const NSTimeInterval kTwoFingerTapMaxDuration = 0.5;
     static dispatch_queue_t queue;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        queue = dispatch_queue_create("TouchMyMac.controlLookup", DISPATCH_QUEUE_SERIAL);
+        queue = dispatch_queue_create("MacTouchCentral.controlLookup", DISPATCH_QUEUE_SERIAL);
     });
 
     NSInteger session = ++self.controlLookupSession;

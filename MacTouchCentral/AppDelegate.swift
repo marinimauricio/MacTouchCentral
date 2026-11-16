@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  TouchMyMac
+//  MacTouchCentral
 //
 //  Created by Sebastian Hueber on 03.02.23.
 //
@@ -15,7 +15,7 @@ import TouchUpCore
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    let model = TouchMyMac()
+    let model = MacTouchCentral()
     
     
     var statusItem: NSStatusItem!
@@ -58,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.statusItem.menu = self.statusMenu
         self.statusItem.button?.image = Self.menuBarIcon
-        self.statusItem.button?.toolTip = "TouchMyMac"
+        self.statusItem.button?.toolTip = "MacTouchCentral"
         self.installStatusMenuItems()
 
         // receive(on:) runs after @Published has stored the new value, so the refresh reads current state.
@@ -252,7 +252,7 @@ extension AppDelegate: NSMenuDelegate {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "TouchMyMac"
+        image.accessibilityDescription = "MacTouchCentral"
         return image
     }()
 
@@ -349,11 +349,11 @@ extension AppDelegate: NSMenuDelegate {
         if accessibilityGranted {
             accessibilityStatusMenuItem.title = L("Accessibility: Allowed")
             accessibilityStatusMenuItem.image = Self.statusIcon(.good)
-            accessibilityStatusMenuItem.toolTip = L("TouchMyMac may control the mouse and keyboard.")
+            accessibilityStatusMenuItem.toolTip = L("MacTouchCentral may control the mouse and keyboard.")
         } else {
             accessibilityStatusMenuItem.title = L("Accessibility: Not Allowed – Open Settings…")
             accessibilityStatusMenuItem.image = Self.statusIcon(.warning)
-            accessibilityStatusMenuItem.toolTip = L("Turn on TouchMyMac in Privacy & Security → Accessibility. After an update, remove it from the list and add it again.")
+            accessibilityStatusMenuItem.toolTip = L("Turn on MacTouchCentral in Privacy & Security → Accessibility. After an update, remove it from the list and add it again.")
         }
 
         // Most touchscreens don't need Input Monitoring, so the row only shows once it matters.
@@ -361,11 +361,11 @@ extension AppDelegate: NSMenuDelegate {
         if inputMonitoringGranted {
             inputMonitoringStatusMenuItem.title = L("Input Monitoring: Allowed")
             inputMonitoringStatusMenuItem.image = Self.statusIcon(.good)
-            inputMonitoringStatusMenuItem.toolTip = L("TouchMyMac may read the touchscreen's touch data.")
+            inputMonitoringStatusMenuItem.toolTip = L("MacTouchCentral may read the touchscreen's touch data.")
         } else {
             inputMonitoringStatusMenuItem.title = L("Input Monitoring: Not Allowed – Open Settings…")
             inputMonitoringStatusMenuItem.image = Self.statusIcon(.warning)
-            inputMonitoringStatusMenuItem.toolTip = L("Turn on TouchMyMac in Privacy & Security → Input Monitoring. macOS won't let the app read this touchscreen without it.")
+            inputMonitoringStatusMenuItem.toolTip = L("Turn on MacTouchCentral in Privacy & Security → Input Monitoring. macOS won't let the app read this touchscreen without it.")
         }
 
         // The touchscreen row names the monitor touches land on; its submenu picks another one.
@@ -455,9 +455,9 @@ private extension NSFont {
 
 class SettingsWindow: NSWindow {
     
-    var model: TouchMyMac?
+    var model: MacTouchCentral?
     
-    static func window(model: TouchMyMac) -> SettingsWindow {
+    static func window(model: MacTouchCentral) -> SettingsWindow {
         let vc = NSHostingController(rootView: SettingsView(model:model))
         let window = SettingsWindow(contentRect: .zero,
                                     styleMask: [.closable, .titled, .fullSizeContentView, .resizable],
@@ -502,10 +502,10 @@ class SettingsWindow: NSWindow {
 
 class DebugOverlay: NSWindow {
     
-    var model: TouchMyMac?
+    var model: MacTouchCentral?
     static var completion: (()->Void)?
     
-    static func overlay(model: TouchMyMac) -> DebugOverlay {
+    static func overlay(model: MacTouchCentral) -> DebugOverlay {
         let vc = NSHostingController(rootView: DebugView(model:model, closeAction: {
             DebugOverlay.completion?()
         }))
@@ -707,7 +707,7 @@ final class FloatingKeyboardView: NSView {
                height: (grabberHeight + CGFloat(rows.count) * unit + 2 * padding) * scale)
     }
 
-    private weak var model: TouchMyMac?
+    private weak var model: MacTouchCentral?
     private var keys: [(key: KeyboardKey, rect: NSRect)] = FloatingKeyboardView.makeLayout(scale: 1)
 
     var isCompact = false {
@@ -735,7 +735,7 @@ final class FloatingKeyboardView: NSView {
     private var dragStartLocation = NSPoint.zero // screen coordinates
     private var dragStartOrigin = NSPoint.zero
 
-    init(model: TouchMyMac) {
+    init(model: MacTouchCentral) {
         self.model = model
         super.init(frame: NSRect(origin: .zero, size: Self.contentSize(scale: 1)))
         inputSourceObserver = DistributedNotificationCenter.default().addObserver(
@@ -1267,11 +1267,11 @@ private extension NSAppearance {
 
 class FloatingKeyboardPanel: NSPanel {
     let keyboardView: FloatingKeyboardView
-    private weak var model: TouchMyMac?
+    private weak var model: MacTouchCentral?
     private var userOrigin: NSPoint? // where the user last moved the panel
     private static let compactDefaultsKey = "isFloatingKeyboardCompact"
 
-    init(model: TouchMyMac) {
+    init(model: MacTouchCentral) {
         self.model = model
         self.keyboardView = FloatingKeyboardView(model: model)
 

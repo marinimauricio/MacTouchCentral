@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT_PATH="$ROOT_DIR/TouchMyMac.xcodeproj"
-SCHEME="TouchMyMac"
+PROJECT_PATH="$ROOT_DIR/MacTouchCentral.xcodeproj"
+SCHEME="MacTouchCentral"
 CONFIGURATION="${CONFIGURATION:-Debug}"
-DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-/tmp/TouchMyMacDerivedData}"
-APP_NAME="TouchMyMac"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-/tmp/MacTouchCentralDerivedData}"
+APP_NAME="MacTouchCentral"
 
 usage() {
   cat <<EOF

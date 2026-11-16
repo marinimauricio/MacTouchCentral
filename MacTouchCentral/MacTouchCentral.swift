@@ -1,6 +1,6 @@
 //
 //  Model.swift
-//  TouchMyMac
+//  MacTouchCentral
 //
 //  Created by Sebastian Hueber on 03.02.23.
 //
@@ -69,7 +69,7 @@ struct TouchManagerDiagnosticsSnapshot {
     let threeFingerHorizontalTravelMM: CGFloat
 }
 
-class TouchMyMac: NSObject, ObservableObject {
+class MacTouchCentral: NSObject, ObservableObject {
     
     let touchManager: TUCTouchInputManager
     @Published var touches = [TUCTouch]()
@@ -428,11 +428,11 @@ class TouchMyMac: NSObject, ObservableObject {
         
         self.touchManager.delegate = self
         
-        NotificationCenter.default.addObserver(self, selector: #selector(TouchMyMac.screenParametersDidChange), name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(MacTouchCentral.screenParametersDidChange), name: NSApplication.didChangeScreenParametersNotification, object: nil)
 
         // Posted when any app's Accessibility permission changes; the new value is readable a moment later.
-        DistributedNotificationCenter.default().addObserver(self, selector: #selector(TouchMyMac.accessibilityPermissionsDidChange), name: NSNotification.Name("com.apple.accessibility.api"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(TouchMyMac.accessibilityPermissionsDidChange), name: NSApplication.didBecomeActiveNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(MacTouchCentral.accessibilityPermissionsDidChange), name: NSNotification.Name("com.apple.accessibility.api"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(MacTouchCentral.accessibilityPermissionsDidChange), name: NSApplication.didBecomeActiveNotification, object: nil)
 
         initPreferences()
         
@@ -631,7 +631,7 @@ class TouchMyMac: NSObject, ObservableObject {
 
 
 // MARK: - Loading, Saving and Syncing Settings with Framework
-extension TouchMyMac {
+extension MacTouchCentral {
     
     func initPreferences() {
         let defaults = UserDefaults.standard
@@ -760,7 +760,7 @@ extension TouchMyMac {
 
 
 
-extension TouchMyMac: TUCTouchDelegate {
+extension MacTouchCentral: TUCTouchDelegate {
     func performUIUpdate(_ updates: @escaping () -> Void) {
         if Thread.isMainThread {
             updates()
@@ -965,8 +965,8 @@ extension TouchMyMac: TUCTouchDelegate {
 }
 
 
-extension TouchMyMac {
-    func uiLabels<T>(for keyPath: KeyPath<TouchMyMac, T>) -> (title:String, description:String) {
+extension MacTouchCentral {
+    func uiLabels<T>(for keyPath: KeyPath<MacTouchCentral, T>) -> (title:String, description:String) {
         switch keyPath {
         case \.isPublishingMouseEventsEnabled:
             return(L("Control Mouse with Touch"),
@@ -974,7 +974,7 @@ extension TouchMyMac {
             
         case \.opensAtLogin:
             return(L("Open at Login"),
-                   L("Starts TouchMyMac when you log in, so the touchscreen works right away."))
+                   L("Starts MacTouchCentral when you log in, so the touchscreen works right away."))
 
         case \.connectedTouchscreen:
             return(L("Assign Mouse Events to"),
@@ -1098,7 +1098,7 @@ extension TUCScreen: Identifiable {
 
 
 // MARK: - Open at Login
-extension TouchMyMac {
+extension MacTouchCentral {
 
     var languageNeedsRestart: Bool {
         appLanguage != launchLanguage
@@ -1124,7 +1124,7 @@ extension TouchMyMac {
     }
 
     static var loginItemTurnedOffNote: String {
-        L("Turned off in System Settings → General → Login Items. Allow TouchMyMac there.")
+        L("Turned off in System Settings → General → Login Items. Allow MacTouchCentral there.")
     }
 
     var canOpenAtLogin: Bool {
@@ -1135,7 +1135,7 @@ extension TouchMyMac {
     func refreshOpensAtLogin() {
         guard #available(macOS 13.0, *) else {
             opensAtLogin = false
-            openAtLoginNote = L("Needs macOS 13 or later. Add TouchMyMac in System Settings → Users & Groups → Login Items instead.")
+            openAtLoginNote = L("Needs macOS 13 or later. Add MacTouchCentral in System Settings → Users & Groups → Login Items instead.")
             return
         }
         let status = SMAppService.mainApp.status
